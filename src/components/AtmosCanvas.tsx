@@ -5,6 +5,28 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { Text } from 'troika-three-text'
 import gsap from 'gsap'
 import { ATMOS_FACTS, CLOUD_CONFIGS } from '../data/atmosData'
+import { createSkyMaterial } from '../shaders/skyShader'
+import { TransitionShader } from '../shaders/transitionShader'
+
+/**
+ * Authentic Atmos Dynamic Atmospheric Ground Bounce Colors (1:1 Leeroy Atmos Parity)
+ * As the aircraft progresses along the flight path, the sky dome gradients transition through
+ * 8 distinct mood phases (morning blue, lavender, peach sunset, periwinkle, sunset orange, dusk, night).
+ * The HemisphereLight groundColor dynamically interpolates across these exact 10 stops,
+ * coloring the underbelly, wings, and shadows of the airplane, clouds, and elephant.
+ */
+const ATMOS_LIGHT_GROUND_COLORS = [
+  new THREE.Color('rgb(8, 37, 198)'),    // 0.0 - 0.1: Initial Deep Royal Blue
+  new THREE.Color('rgb(8, 37, 198)'),    // 0.1 - 0.2: Deep Royal Blue
+  new THREE.Color('rgb(116, 136, 234)'),  // 0.2 - 0.3: Soft Lavender Blue
+  new THREE.Color('rgb(255, 192, 148)'),  // 0.3 - 0.4: Warm Golden Peach (Sunset)
+  new THREE.Color('rgb(136, 162, 247)'),  // 0.4 - 0.5: Periwinkle Blue
+  new THREE.Color('rgb(136, 162, 247)'),  // 0.5 - 0.6: Periwinkle Blue
+  new THREE.Color('rgb(253, 175, 120)'),  // 0.6 - 0.7: Vibrant Sunset Orange
+  new THREE.Color('rgb(253, 175, 120)'),  // 0.7 - 0.8: Vibrant Sunset Orange
+  new THREE.Color('rgb(90, 108, 216)'),   // 0.8 - 0.9: Twilight Indigo
+  new THREE.Color('rgb(90, 108, 216)')    // 0.9 - 1.0: Twilight Indigo
+]
 
 interface AtmosCanvasProps {
   isExploring: boolean
@@ -15,112 +37,6 @@ interface AtmosCanvasProps {
   onExploreStart: () => void
   onEndReached: () => void
 }
-
-const SKY_VERTEX_SHADER = `
-varying vec3 vPos;
-varying vec2 vUv;
-
-void main() {
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
-  vPos = position;
-  vUv = uv;
-}
-`
-
-const SKY_FRAGMENT_SHADER = `
-uniform float uTime;
-uniform float uGradientMixer;
-uniform float uYCompression;
-
-varying vec3 vPos;
-varying vec2 vUv;
-
-vec4 permute(vec4 x) {
-  return mod(((x*34.0)+1.0)*x, 289.0);
-}
-
-vec2 fade(vec2 t) {
-  return t*t*t*(t*(t*6.0-15.0)+10.0);
-}
-
-float cnoise(vec2 P) {
-  vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
-  vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
-  Pi = mod(Pi, 289.0);
-  vec4 ix = Pi.xzxz;
-  vec4 iy = Pi.yyww;
-  vec4 fx = Pf.xzxz;
-  vec4 fy = Pf.yyww;
-  vec4 i = permute(permute(ix) + iy);
-  vec4 gx = 2.0 * fract(i * 0.0243902439) - 1.0;
-  vec4 gy = abs(gx) - 0.5;
-  vec4 tx = floor(gx + 0.5);
-  gx = gx - tx;
-  vec2 g00 = vec2(gx.x, gy.x);
-  vec2 g10 = vec2(gx.y, gy.y);
-  vec2 g01 = vec2(gx.z, gy.z);
-  vec2 g11 = vec2(gx.w, gy.w);
-  vec4 norm = 1.79284291400159 - 0.85373472095314 * vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11));
-  g00 *= norm.x;
-  g01 *= norm.y;
-  g10 *= norm.z;
-  g11 *= norm.w;
-  float n00 = dot(g00, vec2(fx.x, fy.x));
-  float n10 = dot(g10, vec2(fx.y, fy.y));
-  float n01 = dot(g01, vec2(fx.z, fy.z));
-  float n11 = dot(g11, vec2(fx.w, fy.w));
-  vec2 fade_xy = fade(Pf.xy);
-  vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
-  float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
-  return 2.3 * n_xy;
-}
-
-vec3 rgb(int r, int g, int b) {
-  return vec3(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
-}
-
-vec3 gradient(vec3 colorTop, vec3 colorBottom, vec3 colorNoise, float yFactor, float noise) {
-  vec3 vertical_gradient = mix(colorTop, colorBottom, yFactor);
-  return mix(vertical_gradient, colorNoise, noise * (1.0 - yFactor));
-}
-
-vec3 gradientMultimix(vec3 elements[8], float v) {
-  lowp int i1 = int(v);
-  float completion = mod(v, 1.0);
-
-  if (i1 == 0) return mix(elements[0], elements[1], completion);
-  else if (i1 == 1) return mix(elements[1], elements[2], completion);
-  else if (i1 == 2) return mix(elements[2], elements[3], completion);
-  else if (i1 == 3) return mix(elements[3], elements[4], completion);
-  else if (i1 == 4) return mix(elements[4], elements[5], completion);
-  else if (i1 == 5) return mix(elements[5], elements[6], completion);
-  else if (i1 == 6) return mix(elements[6], elements[7], completion);
-  return elements[7];
-}
-
-void main() {
-  float yFactor = clamp(0.5 - (vPos.y * uYCompression) / 2.0, 0.0, 1.0);
-  float speed = 0.2;
-  float noise = cnoise(vPos.xy * 0.025 + uTime * speed);
-  noise += cnoise(vPos.xy * 0.025 - uTime * speed);
-  noise = clamp(noise, 0.0, 1.0);
-
-  vec3 gradients[8];
-  gradients[0] = gradient(rgb(8, 37, 198), rgb(196, 203, 244), rgb(0, 27, 181), yFactor, noise);
-  gradients[1] = gradient(rgb(116, 136, 234), rgb(255, 192, 148), rgb(116, 136, 234), yFactor, noise);
-  gradients[2] = gradient(rgb(255, 192, 148), rgb(222, 229, 253), rgb(136, 162, 247), yFactor, noise);
-  gradients[3] = gradient(rgb(136, 162, 247), rgb(222, 229, 253), rgb(136, 162, 247), yFactor, noise);
-  gradients[4] = gradient(rgb(136, 162, 247), rgb(222, 229, 253), rgb(255, 192, 148), yFactor, noise);
-  gradients[5] = gradient(rgb(253, 175, 120), rgb(255, 230, 213), rgb(253, 175, 120), yFactor, noise);
-  gradients[6] = gradient(rgb(253, 175, 120), rgb(197, 211, 254), rgb(90, 108, 216), yFactor, noise);
-  gradients[7] = gradient(rgb(90, 108, 216), rgb(197, 211, 254), rgb(90, 108, 216), yFactor, noise);
-
-  float gradientLength = 8.0;
-  vec3 color = gradientMultimix(gradients, clamp(uGradientMixer, 0.0, 0.999) * (gradientLength - 1.0));
-
-  gl_FragColor = vec4(color, 1.0);
-}
-`
 
 export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
   isExploring,
@@ -142,16 +58,92 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     progressAmp: 1.0,
     Am: 0.0001,
     introPosition: new THREE.Vector3(0, -2, 17.5),
-    aboutLerp: 0,
+    introCloudAlpha: { value: 0 },
+    transitionMode: 'NONE' as 'NONE' | 'TO_ABOUT' | 'TO_FLIGHT',
+    currentScene: 'FLIGHT' as 'FLIGHT' | 'ABOUT',
+    transitionProgress: { value: 0 },
+    aboutDistanceFactor: { value: 50 },
+    aboutYDynamics: { value: -0.5 },
+    aboutDummy: { value: 0 },
+    aboutXPosition: typeof window !== 'undefined' && window.innerWidth > 1000 ? -0.4 : 0,
     mouseLerp: { x: 0, y: 0 },
     isExploring: false,
     isAboutOpen: false,
     hasEnded: false
   })
 
-  // Synchronize flags
+  // Synchronize flags & trigger authentic Atmos waveclip page transition
   useEffect(() => {
     stateRef.current.isAboutOpen = isAboutOpen
+    const s = stateRef.current
+    s.aboutXPosition = window.innerWidth > 1000 ? -0.4 : 0
+
+    if (isAboutOpen) {
+      if (s.currentScene !== 'ABOUT' || s.transitionMode !== 'NONE') {
+        s.transitionMode = 'TO_ABOUT'
+        s.transitionProgress.value = 0
+        gsap.killTweensOf(s.transitionProgress)
+        gsap.to(s.transitionProgress, {
+          value: 1.0,
+          duration: 1.8,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            s.transitionMode = 'NONE'
+            s.currentScene = 'ABOUT'
+          }
+        })
+
+        // Enter About mode: Glide in from far distance 50 -> 20, yDynamics -0.5 -> 0
+        s.aboutDistanceFactor.value = 50
+        s.aboutYDynamics.value = -0.5
+        s.aboutDummy.value = 0
+        gsap.killTweensOf([s.aboutDistanceFactor, s.aboutYDynamics, s.aboutDummy])
+
+        gsap.to(s.aboutDistanceFactor, {
+          value: 20,
+          duration: 2.8,
+          ease: 'power2.out'
+        })
+        gsap.to(s.aboutYDynamics, {
+          value: 0,
+          duration: 2.8,
+          ease: 'power2.out'
+        })
+        gsap.to(s.aboutDummy, {
+          value: 1,
+          duration: 2.8,
+          ease: 'power2.out'
+        })
+      }
+    } else {
+      if (s.currentScene !== 'FLIGHT' || s.transitionMode !== 'NONE') {
+        s.transitionMode = 'TO_FLIGHT'
+        s.transitionProgress.value = 0
+        gsap.killTweensOf(s.transitionProgress)
+        gsap.to(s.transitionProgress, {
+          value: 1.0,
+          duration: 1.8,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            s.transitionMode = 'NONE'
+            s.currentScene = 'FLIGHT'
+          }
+        })
+
+        // Exit About mode: Glide out distance 20 -> 10, yDynamics 0 -> 1.0
+        gsap.killTweensOf([s.aboutDistanceFactor, s.aboutYDynamics, s.aboutDummy])
+        gsap.to(s.aboutDistanceFactor, {
+          value: 10,
+          duration: 1.8,
+          ease: 'power2.in'
+        })
+        gsap.to(s.aboutYDynamics, {
+          value: 1.0,
+          duration: 1.8,
+          ease: 'power2.in'
+        })
+      }
+    }
   }, [isAboutOpen])
 
   useEffect(() => {
@@ -163,22 +155,54 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
   }, [seekRatio])
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '1') {
+        const target = 0.175 * stateRef.current.scrollerRange
+        stateRef.current.scrollerDeltaY = target
+        stateRef.current.scrollerCurrentY = target
+        stateRef.current.Am = 0.175
+      } else if (e.key === '4') {
+        const target = 0.375 * stateRef.current.scrollerRange
+        stateRef.current.scrollerDeltaY = target
+        stateRef.current.scrollerCurrentY = target
+        stateRef.current.Am = 0.375
+      } else if (e.key === '9') {
+        const target = 0.875 * stateRef.current.scrollerRange
+        stateRef.current.scrollerDeltaY = target
+        stateRef.current.scrollerCurrentY = target
+        stateRef.current.Am = 0.875
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
     stateRef.current.isExploring = isExploring
     if (isExploring) {
-      if (stateRef.current.scrollerDeltaY === 0) {
-        stateRef.current.scrollerDeltaY = 350
-      }
       gsap.to(stateRef.current.introPosition, {
         y: 0,
         z: 0,
         duration: 3.0,
         ease: 'power2.out'
       })
+      setTimeout(() => {
+        gsap.to(stateRef.current.introCloudAlpha, {
+          value: 1.0,
+          duration: 2.0,
+          ease: 'power2.in'
+        })
+      }, 500)
     } else {
       gsap.to(stateRef.current.introPosition, {
         y: -2,
         z: 17.5,
         duration: 1.5,
+        ease: 'power2.out'
+      })
+      gsap.to(stateRef.current.introCloudAlpha, {
+        value: 0.0,
+        duration: 1.0,
         ease: 'power2.out'
       })
     }
@@ -191,11 +215,19 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     // Scene & Camera
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(
-      45,
+      60,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     )
+    const updateCameraFov = () => {
+      camera.aspect = window.innerWidth / window.innerHeight
+      let fov = THREE.MathUtils.mapLinear(camera.aspect, 1.6, 0.6, 60, 90)
+      fov = THREE.MathUtils.clamp(fov, 60, 90)
+      camera.fov = fov
+      camera.updateProjectionMatrix()
+    }
+    updateCameraFov()
     camera.position.set(0, 0, 8)
 
     const renderer = new THREE.WebGLRenderer({
@@ -205,38 +237,36 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.15
+    renderer.toneMapping = THREE.NoToneMapping
+    renderer.toneMappingExposure = 1.0
     container.innerHTML = ''
     container.appendChild(renderer.domElement)
 
-    // Lighting
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x5a6cd8, 1.5)
+    // Lighting (1:1 Authentic Atmos Hemisphere Light)
+    // In Atmos, only ONE HemisphereLight illuminates the scene:
+    // Pure white sky light from above (-10, 10, 0) keeps cloud tops and upper wing surfaces clean & crisp.
+    // The ground bounce light dynamically transforms the underbelly and shadows of the 3D plane, clouds,
+    // and elephant to reflect the surrounding sky color (royal blue -> peach sunset -> orange dusk -> night).
+    const hemiLight = new THREE.HemisphereLight(
+      0xffffff,
+      ATMOS_LIGHT_GROUND_COLORS[0].clone(),
+      1.2
+    )
+    hemiLight.position.set(-10, 10, 0)
     scene.add(hemiLight)
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.2)
-    dirLight.position.set(-10, 15, 10)
-    scene.add(dirLight)
-
-    const fillLight = new THREE.DirectionalLight(0xb0caff, 1.0)
-    fillLight.position.set(10, -5, -5)
-    scene.add(fillLight)
-
-    // Sky Dome Mesh
-    const skyGeo = new THREE.SphereGeometry(300, 32, 16)
-    const skyMaterial = new THREE.ShaderMaterial({
-      vertexShader: SKY_VERTEX_SHADER,
-      fragmentShader: SKY_FRAGMENT_SHADER,
-      side: THREE.BackSide,
-      depthWrite: false,
-      uniforms: {
-        uTime: { value: 0 },
-        uGradientMixer: { value: 0 },
-        uYCompression: { value: 0.05 }
-      }
-    })
+    // Sky Dome Mesh (Authentic Atmos radius 50)
+    const skyGeo = new THREE.SphereGeometry(50, 32, 16)
+    const skyMaterial = createSkyMaterial(0.06)
     const skyMesh = new THREE.Mesh(skyGeo, skyMaterial)
     scene.add(skyMesh)
+
+    const updateSkyYCompression = () => {
+      let e = THREE.MathUtils.mapLinear(camera.aspect, 1.6, 0.6, 0.06, 0.04)
+      e = THREE.MathUtils.clamp(e, 0.04, 0.06)
+      skyMaterial.uniforms.uYCompression.value = e
+    }
+    updateSkyYCompression()
 
     // Flight Curve (CatmullRomCurve3 with curve_size_factor = 2.5)
     const curveSizeFactor = 2.5
@@ -256,31 +286,99 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     const trailGeo = new THREE.TubeGeometry(
       flightCurve,
       Math.round(200 * curveSizeFactor),
-      0.022,
-      6,
+      0.025,
+      8,
       false
     )
     const trailMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.0,
       depthWrite: false
     })
     const trailMesh = new THREE.Mesh(trailGeo, trailMat)
     trailMesh.position.y = -0.5
+    trailMesh.visible = false
     scene.add(trailMesh)
 
-    // Airplane Group
+    // Airplane Group (Hidden until explore starts)
     const planeGroup = new THREE.Group()
+    planeGroup.visible = false
     scene.add(planeGroup)
 
-    const placeholderGeo = new THREE.ConeGeometry(0.3, 1.4, 16)
-    placeholderGeo.rotateX(Math.PI / 2)
-    const placeholderPlane = new THREE.Mesh(
-      placeholderGeo,
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+    // -------------------------------------------------------------
+    // DEDICATED ABOUT SCENE & CAMERA (100% INDEPENDENT OF FLIGHT SCENE)
+    // In authentic Atmos, About is a completely separate Scene (scene_about).
+    // The flight airplane, contrail, camera, facts, and HUD are never altered.
+    // -------------------------------------------------------------
+    const aboutScene = new THREE.Scene()
+    const aboutCamera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
     )
-    planeGroup.add(placeholderPlane)
+    aboutCamera.position.set(0, 0, 8)
+    aboutCamera.lookAt(0, 0, -20)
+
+    const aboutSkyGeo = new THREE.SphereGeometry(50, 32, 16)
+    const aboutSkyMat = createSkyMaterial(0.06)
+    aboutSkyMat.uniforms.uGradientMixer.value = 0.01
+    const aboutSkyMesh = new THREE.Mesh(aboutSkyGeo, aboutSkyMat)
+    aboutSkyMesh.rotation.x = -0.1 * Math.PI
+    aboutScene.add(aboutSkyMesh)
+
+    const aboutLight = new THREE.HemisphereLight(
+      0xffffff,
+      ATMOS_LIGHT_GROUND_COLORS[0].clone(),
+      1.2
+    )
+    aboutLight.position.set(-10, 10, 0)
+    aboutScene.add(aboutLight)
+
+    const aboutPlaneGroup = new THREE.Group()
+    aboutScene.add(aboutPlaneGroup)
+
+    // -------------------------------------------------------------
+    // WAVECLIP TRANSITION PASS & RENDER TARGETS
+    // -------------------------------------------------------------
+    const dpr = Math.min(window.devicePixelRatio, 2)
+    const rtFlight = new THREE.WebGLRenderTarget(
+      window.innerWidth * dpr,
+      window.innerHeight * dpr,
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat
+      }
+    )
+    const rtAbout = new THREE.WebGLRenderTarget(
+      window.innerWidth * dpr,
+      window.innerHeight * dpr,
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat
+      }
+    )
+
+    const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    const transitionScene = new THREE.Scene()
+    const transitionMat = new THREE.ShaderMaterial({
+      vertexShader: TransitionShader.vertexShader,
+      fragmentShader: TransitionShader.fragmentShader,
+      uniforms: {
+        uTexture1: { value: null },
+        uTexture2: { value: null },
+        uProgress: { value: 0 },
+        uSeed: { value: 0 },
+        uDirection: { value: -1 }
+      },
+      depthTest: false,
+      depthWrite: false
+    })
+    const transitionQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), transitionMat)
+    transitionScene.add(transitionQuad)
 
     // Setup GLTF & Draco Loaders
     const dracoLoader = new DRACOLoader()
@@ -288,10 +386,8 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     const gltfLoader = new GLTFLoader()
     gltfLoader.setDRACOLoader(dracoLoader)
 
-    const planeMat = new THREE.MeshStandardMaterial({
+    const planeMat = new THREE.MeshLambertMaterial({
       color: 0xffffff,
-      roughness: 0.32,
-      metalness: 0.05,
       transparent: true,
       opacity: 1
     })
@@ -300,32 +396,48 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     gltfLoader.load(
       '/models/planeur.glb',
       (gltf) => {
-        planeGroup.remove(placeholderPlane)
+        // 1. Flight airplane (in flight scene)
         planeMesh = gltf.scene
-
         planeMesh.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh
             mesh.material = planeMat
-            mesh.castShadow = true
-            mesh.receiveShadow = true
+            mesh.castShadow = false
+            mesh.receiveShadow = false
           }
         })
-
-        planeMesh.scale.set(0.65, 0.65, 0.65)
+        planeMesh.scale.set(1.0, 1.0, 1.0)
         planeGroup.add(planeMesh)
+
+        // 2. About airplane (dedicated clone in aboutScene)
+        const aboutPlaneMesh = gltf.scene.clone(true)
+        const aboutPlaneMat = new THREE.MeshLambertMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 1
+        })
+        aboutPlaneMesh.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh
+            mesh.material = aboutPlaneMat
+            mesh.castShadow = false
+            mesh.receiveShadow = false
+          }
+        })
+        aboutPlaneMesh.scale.set(1.0, 1.0, 1.0)
+        aboutPlaneGroup.add(aboutPlaneMesh)
       },
       undefined,
       (err) => console.error('Error loading planeur.glb:', err)
     )
 
     // -------------------------------------------------------------
-    // SPEED LINES / WIND PARTICLES - EXACT AUTHENTIC ATMOS FORMULA
-    // OctahedronGeometry(0.012, 0) stretched by (0.5, 30, 0.5)
-    // Opacity strictly clamped between 0 and 0.04 (ultra-subtle, elegant vapor!)
+    // SPEED LINES / WIND PARTICLES - AUTHENTIC AERODYNAMIC SLIPSTREAM
+    // Trailing behind and around the airplane's wings
+    // Thin, sleek, subtle vapor streaks (max opacity ~0.065)
     // -------------------------------------------------------------
-    const windCount = 120
-    const windGeo = new THREE.OctahedronGeometry(0.012, 0)
+    const windCount = 90
+    const windGeo = new THREE.OctahedronGeometry(0.015, 0)
     const windMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
@@ -333,28 +445,30 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       depthWrite: false
     })
     const windMesh = new THREE.InstancedMesh(windGeo, windMat, windCount)
-    const dummy = new THREE.Object3D()
-    const windScale = new THREE.Vector3(0.5, 30, 0.5)
+    windMesh.visible = false
+
+    const particlePositions = new Float32Array(windCount * 3)
+    const particleSpeeds = new Float32Array(windCount)
+    const _particleMatrix = new THREE.Matrix4()
+    const _particlePos = new THREE.Vector3()
+    const _particleScale = new THREE.Vector3(0.35, 0.35, 36)
 
     for (let i = 0; i < windCount; i++) {
       const angle = Math.random() * Math.PI * 2
-      const radius = 3.2 + Math.random() * 1.6 // Periphery framing wings
-      const pos = new THREE.Vector3(
-        Math.cos(angle) * radius,
-        Math.sin(angle) * radius,
-        Math.random() * 80 - 40
-      )
-      const rot = new THREE.Euler(
-        0.5 * Math.PI,
-        Math.random() * Math.PI * 2,
-        0
-      )
+      const radiusX = 1.0 + Math.random() * 3.2
+      const radiusY = 0.2 + Math.random() * 0.9
+      const x = Math.cos(angle) * radiusX
+      const y = Math.sin(angle) * radiusY
+      const z = 1.2 + Math.random() * 8.3 // Strictly trailing behind the aircraft
 
-      dummy.position.copy(pos)
-      dummy.rotation.copy(rot)
-      dummy.scale.copy(windScale)
-      dummy.updateMatrix()
-      windMesh.setMatrixAt(i, dummy.matrix)
+      particlePositions[i * 3] = x
+      particlePositions[i * 3 + 1] = y
+      particlePositions[i * 3 + 2] = z
+      particleSpeeds[i] = 0.16 + (i % 5) * 0.04
+
+      _particlePos.set(x, y, z)
+      _particleMatrix.compose(_particlePos, new THREE.Quaternion(), _particleScale)
+      windMesh.setMatrixAt(i, _particleMatrix)
     }
     windMesh.instanceMatrix.needsUpdate = true
     scene.add(windMesh)
@@ -372,48 +486,56 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       body: Text
       progress: number
       align: 'left' | 'right'
-      alignFactor: number
+      positionOffset: THREE.Vector3
       position: THREE.Vector3
       pre_position: THREE.Vector3
     }
 
     const textItems: TextItem[] = []
 
-    const orientTextToCamera = (group: THREE.Group, prog: number) => {
-      const lookPt = flightCurve.getPointAt(Math.max(0, prog - 0.025))
-      lookPt.y = group.position.y
-      group.lookAt(lookPt)
-    }
-
-    // 1. Welcome announcement at progress = 0.1
+    // 1. Welcome announcement at progress = 0.1 (exact Atmos om[0])
     const welcomeGroup = new THREE.Group()
     const welcomeBody = new Text()
     welcomeBody.text = "Hello passengers and welcome aboard. Please sit back, relax, and enjoy the view while we tell you some of our favourite facts about the aviation world."
     welcomeBody.font = '/fonts/font2.ttf'
-    welcomeBody.fontSize = 0.26
-    welcomeBody.maxWidth = 3.2
-    welcomeBody.lineHeight = 1.3
+    welcomeBody.fontSize = 0.3 // Atmos exact bodyFontSize
+    welcomeBody.maxWidth = 3.2 // Atmos exact bodyMaxWidth
+    welcomeBody.lineHeight = 1.35
+    welcomeBody.position.y = -1.2 // Atmos exact Y offset within text group
     welcomeBody.color = 0xffffff
+    welcomeBody.outlineWidth = 0
+    welcomeBody.strokeWidth = 0
     welcomeBody.textAlign = 'left'
     welcomeBody.anchorX = 'left'
     welcomeBody.material.transparent = true
     welcomeBody.material.opacity = 0
+    welcomeBody.material.depthWrite = false
+    welcomeBody.sdfGlyphSize = 128
     welcomeBody.sync()
     welcomeGroup.add(welcomeBody)
 
     const welcomeOffset = new THREE.Vector3(1, 2.8, 0)
-    const welcomeCurvePt = flightCurve.getPointAt(0.1)
-    welcomeGroup.position.copy(welcomeCurvePt).add(welcomeOffset)
-    orientTextToCamera(welcomeGroup, 0.1)
+    flightCurve.getPointAt(0.1, welcomeGroup.position)
+    welcomeGroup.position.add(welcomeOffset)
+
+    const welcomeLookPt = new THREE.Vector3()
+    flightCurve.getPointAt(Math.max(0, 0.1 - 0.01 * curveSizeFactor), welcomeLookPt)
+    welcomeLookPt.y = welcomeGroup.position.y
+    welcomeGroup.lookAt(welcomeLookPt)
+
+    welcomeGroup.visible = false
     scene.add(welcomeGroup)
 
-    const welcomePrePos = flightCurve.getPointAt(0.1 - 0.015).add(welcomeOffset)
+    const welcomePrePos = new THREE.Vector3()
+    flightCurve.getPointAt(0.1 - 0.015, welcomePrePos)
+    welcomePrePos.add(welcomeOffset)
+
     textItems.push({
       group: welcomeGroup,
       body: welcomeBody,
       progress: 0.1,
       align: 'left',
-      alignFactor: 1.0,
+      positionOffset: welcomeOffset,
       position: welcomeGroup.position,
       pre_position: welcomePrePos
     })
@@ -421,17 +543,23 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     ;(window as any).__scene = scene
     ;(window as any).__textItems = textItems
     ;(window as any).__welcomeGroup = welcomeGroup
+    ;(window as any).__seekTo = (p: number) => {
+      const targetY = THREE.MathUtils.clamp(p, 0, 1) * stateRef.current.scrollerRange
+      stateRef.current.scrollerDeltaY = targetY
+      stateRef.current.scrollerCurrentY = targetY
+      stateRef.current.Am = p
+    }
 
-    // 2. The 8 aviation facts spaced evenly at 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    // 2. The 8 aviation facts (matching Atmos exact om[1..8] positions and alignments)
     const FACT_CONFIGS = [
-      { factIdx: 0, progress: 0.2, align: 'left' as const, offset: new THREE.Vector3(1, 1, 0) },
-      { factIdx: 1, progress: 0.3, align: 'left' as const, offset: new THREE.Vector3(1, 1, 0) },
-      { factIdx: 2, progress: 0.4, align: 'right' as const, offset: new THREE.Vector3(-1, 1, 0) },
-      { factIdx: 3, progress: 0.5, align: 'left' as const, offset: new THREE.Vector3(1, 1, 0) },
-      { factIdx: 4, progress: 0.6, align: 'right' as const, offset: new THREE.Vector3(-1, 1, 0) },
-      { factIdx: 5, progress: 0.7, align: 'left' as const, offset: new THREE.Vector3(1, 1, 0) },
-      { factIdx: 6, progress: 0.8, align: 'right' as const, offset: new THREE.Vector3(-0.5, 1, 0) },
-      { factIdx: 7, progress: 0.9, align: 'left' as const, offset: new THREE.Vector3(1, 1, 0) }
+      { factIdx: 0, progress: 0.2, position: new THREE.Vector3(1, 1, 0), align: 'left' as const },
+      { factIdx: 1, progress: 0.3, position: new THREE.Vector3(1, 1, 0), align: 'left' as const },
+      { factIdx: 3, progress: 0.4, position: new THREE.Vector3(-1, 1, 0), align: 'right' as const }, // Fact #04 "FORBIDDEN NUMBER"
+      { factIdx: 2, progress: 0.5, position: new THREE.Vector3(1, 1, 0), align: 'left' as const },
+      { factIdx: 4, progress: 0.6, position: new THREE.Vector3(-1, 1, 0), align: 'right' as const },
+      { factIdx: 5, progress: 0.7, position: new THREE.Vector3(1, 1, 0), align: 'left' as const },
+      { factIdx: 6, progress: 0.8, position: new THREE.Vector3(-0.5, 1, 0), align: 'right' as const },
+      { factIdx: 8, progress: 0.9, position: new THREE.Vector3(1, 1, 0), align: 'left' as const }  // Fact #09 "LUCKY FEW"
     ]
 
     FACT_CONFIGS.forEach((cfg) => {
@@ -441,52 +569,73 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       const sup = new Text()
       sup.text = fact.sup
       sup.font = '/fonts/font2.ttf'
-      sup.fontSize = 0.18
-      sup.position.y = 0.25
+      sup.fontSize = 0.18 // Atmos exact sup.fontSize (.18)
+      sup.position.y = 0.25 // Atmos exact sup.position.y (+.25)
       sup.color = 0xffffff
+      sup.outlineWidth = 0
+      sup.strokeWidth = 0
       sup.textAlign = cfg.align
       sup.anchorX = cfg.align
       sup.material.transparent = true
       sup.material.opacity = 0
+      sup.material.depthWrite = false
+      sup.sdfGlyphSize = 128
       sup.sync()
       group.add(sup)
 
       const title = new Text()
       title.text = fact.title
-      title.font = '/fonts/font1.woff'
-      title.fontSize = 0.50
-      title.position.y = -0.055
+      title.font = '/fonts/font3.otf'
+      title.fontSize = 0.5 // Atmos exact title.fontSize (.5)
+      title.position.y = -0.055 // Atmos exact title.position.y (-.055)
       title.color = 0xffffff
-      title.maxWidth = 2.5
-      title.lineHeight = 1.05
+      title.outlineWidth = 0
+      title.strokeWidth = 0
+      title.maxWidth = fact.titleMaxWidth || 2.5 // Atmos exact title maxWidth (2.5)
+      title.lineHeight = 1.05 // Atmos exact lineHeight (1.05)
       title.textAlign = cfg.align
       title.anchorX = cfg.align
       title.material.transparent = true
       title.material.opacity = 0
+      title.material.depthWrite = false
+      title.sdfGlyphSize = 128
       title.sync()
       group.add(title)
 
       const body = new Text()
       body.text = fact.body
       body.font = '/fonts/font2.ttf'
-      body.fontSize = 0.18
-      body.position.y = -1.2
-      body.maxWidth = 3.0
+      body.fontSize = fact.bodyMaxWidth ? 0.18 : (fact.bodyFontSize || 0.18) // Atmos exact body.fontSize (.18)
+      body.position.y = -1.2 // Atmos exact body.position.y (-1.2)
+      body.maxWidth = fact.bodyMaxWidth || 3.0 // Atmos exact body maxWidth (3.0)
       body.lineHeight = 1.35
       body.color = 0xffffff
+      body.outlineWidth = 0
+      body.strokeWidth = 0
       body.textAlign = cfg.align
       body.anchorX = cfg.align
       body.material.transparent = true
       body.material.opacity = 0
+      body.material.depthWrite = false
+      body.sdfGlyphSize = 128
       body.sync()
       group.add(body)
 
-      const curvePt = flightCurve.getPointAt(cfg.progress)
-      group.position.copy(curvePt).add(cfg.offset)
-      orientTextToCamera(group, cfg.progress)
+      flightCurve.getPointAt(cfg.progress, group.position)
+      group.position.add(cfg.position)
+
+      const lookPt = new THREE.Vector3()
+      flightCurve.getPointAt(Math.max(0, cfg.progress - 0.01 * curveSizeFactor), lookPt)
+      lookPt.y = group.position.y
+      group.lookAt(lookPt)
+
+      group.visible = false
       scene.add(group)
 
-      const prePos = flightCurve.getPointAt(cfg.progress - 0.015).add(cfg.offset)
+      const prePos = new THREE.Vector3()
+      flightCurve.getPointAt(cfg.progress - 0.015, prePos)
+      prePos.add(cfg.position)
+
       textItems.push({
         group,
         sup,
@@ -494,7 +643,7 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
         body,
         progress: cfg.progress,
         align: cfg.align,
-        alignFactor: cfg.align === 'right' ? -1.0 : 1.0,
+        positionOffset: cfg.position,
         position: group.position,
         pre_position: prePos
       })
@@ -510,26 +659,35 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     const spawnClouds = () => {
       CLOUD_CONFIGS.forEach((cfg) => {
         const geo = cfg.type === 1 && cloudGeo1 ? cloudGeo1 : cloudGeo2 ? cloudGeo2 : new THREE.SphereGeometry(1.5, 12, 12)
-        const mat = new THREE.MeshStandardMaterial({
-          color: 0xf5f8ff,
-          roughness: 0.9,
-          metalness: 0.0,
+        const mat = new THREE.MeshLambertMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.8
+          opacity: 0.0
         })
         const mesh = new THREE.Mesh(geo, mat)
+        mesh.visible = false
 
-        const curvePt = flightCurve.getPointAt(cfg.progress)
-        const tangent = flightCurve.getTangentAt(cfg.progress).normalize()
-        const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize()
-        const pos = curvePt.clone().add(normal.multiplyScalar(cfg.pos[0])).add(new THREE.Vector3(0, cfg.pos[1], 0))
+        const targetLookAt = new THREE.Vector3()
+        flightCurve.getPointAt(cfg.progress, mesh.position)
+        flightCurve.getPointAt(Math.max(0, cfg.progress - 0.05 * curveSizeFactor), targetLookAt)
+        mesh.position.add(new THREE.Vector3(cfg.pos[0], cfg.pos[1], cfg.pos[2]))
+        targetLookAt.y = mesh.position.y
+        mesh.lookAt(targetLookAt)
 
-        mesh.position.copy(pos)
-        mesh.scale.setScalar(cfg.scale || 1.2)
-        if (cfg.rotY) mesh.rotation.y = cfg.rotY
+        if (cfg.rot) {
+          mesh.rotation.x += cfg.rot[0]
+          mesh.rotation.y += cfg.rot[1]
+          mesh.rotation.z += cfg.rot[2]
+        }
+        if (cfg.scale) {
+          mesh.scale.set(cfg.scale[0], cfg.scale[1], cfg.scale[2])
+        } else {
+          mesh.scale.set(1, 1, 1)
+        }
 
         scene.add(mesh)
-        cloudsList.push({ mesh, pos })
+        cloudsList.push({ mesh, pos: mesh.position })
       })
     }
 
@@ -545,36 +703,40 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       }, undefined, () => spawnClouds())
     }, undefined, () => spawnClouds())
 
-    // 3D Elephant Easter egg
+    // 3D Elephant Easter egg (Hidden initially)
+    let elephantMesh: THREE.Object3D | null = null
+    let elephantInitY = 0
     gltfLoader.load('/models/elephant.glb', (gltf) => {
-      const elephant = gltf.scene
-      elephant.scale.set(0.65, 0.65, 0.65)
-      const elPt = flightCurve.getPointAt(0.42)
-      elephant.position.copy(elPt).add(new THREE.Vector3(-6, 2, 0))
-      elephant.rotation.y = Math.PI / 4
+      elephantMesh = gltf.scene
+      elephantMesh.scale.set(0.65, 0.65, 0.65)
+      const elPt = flightCurve.getPointAt(0.425)
+      const elTan = flightCurve.getTangentAt(0.425)
+      const elRight = new THREE.Vector3(-elTan.z, 0, elTan.x).normalize()
+      elephantMesh.position.copy(elPt).add(elRight.multiplyScalar(4.5))
+      elephantMesh.position.y += 2.0
+      elephantMesh.rotation.y = Math.PI / 4
+      elephantInitY = elephantMesh.position.y
+      elephantMesh.visible = false
 
-      const elMat = new THREE.MeshStandardMaterial({
-        color: 0xe8efff,
-        roughness: 0.6,
+      const elMat = new THREE.MeshLambertMaterial({
+        color: 0xffffff,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.0
       })
-      elephant.traverse((c) => {
+      elephantMesh.traverse((c) => {
         if ((c as THREE.Mesh).isMesh) (c as THREE.Mesh).material = elMat
       })
-      scene.add(elephant)
+      scene.add(elephantMesh)
     })
 
     // -------------------------------------------------------------
     // VIRTUAL SCROLLER EVENT LISTENERS (EXACT ATMOS PARITY)
+    // Scrolling cannot start flight - ONLY clicking Explore button can!
     // -------------------------------------------------------------
     const onWheel = (e: WheelEvent) => {
       const s = stateRef.current
       if (!s.isExploring) {
-        if (e.deltaY > 5) {
-          onExploreStart()
-        }
-        return
+        return // Strictly do nothing before clicking Explore button
       }
       if (s.isAboutOpen || s.hasEnded) return
 
@@ -585,14 +747,19 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       else if (e.deltaMode === 2) pixelY *= 600
 
       // Exact Atmos speed factor normalized for high-DPI displays
-      const normalizedDelta = (pixelY / dpr) * 0.7
+      const normalizedDelta = (pixelY / dpr) * 0.75
       s.scrollerDeltaY = THREE.MathUtils.clamp(s.scrollerDeltaY + normalizedDelta, 0, s.scrollerRange)
     }
 
     let touchStartY = 0
+    let touchLastTime = 0
+    let touchVelocity = 0
+
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         touchStartY = e.touches[0].clientY
+        touchLastTime = performance.now()
+        touchVelocity = 0
       }
     }
 
@@ -600,24 +767,36 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       const s = stateRef.current
       if (e.touches.length === 0) return
       const curY = e.touches[0].clientY
-      const delta = (touchStartY - curY) * 1.5
+      const now = performance.now()
+      const dt = Math.max(now - touchLastTime, 8)
+      const diff = touchStartY - curY
+      touchVelocity = diff / dt
       touchStartY = curY
+      touchLastTime = now
 
       if (!s.isExploring) {
-        if (delta > 8) {
-          onExploreStart()
-        }
-        return
+        return // Strictly do nothing before clicking Explore button
       }
       if (s.isAboutOpen || s.hasEnded) return
 
       e.preventDefault()
-      s.scrollerDeltaY = THREE.MathUtils.clamp(s.scrollerDeltaY + delta, 0, s.scrollerRange)
+      s.scrollerDeltaY = THREE.MathUtils.clamp(s.scrollerDeltaY + diff * 1.8, 0, s.scrollerRange)
+    }
+
+    const onTouchEnd = () => {
+      const s = stateRef.current
+      if (!s.isExploring || s.isAboutOpen || s.hasEnded) return
+      // When releasing after swipe/flick, apply momentum inertia
+      if (Math.abs(touchVelocity) > 0.12) {
+        const momentum = touchVelocity * 500
+        s.scrollerDeltaY = THREE.MathUtils.clamp(s.scrollerDeltaY + momentum, 0, s.scrollerRange)
+      }
     }
 
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('touchstart', onTouchStart, { passive: true })
     window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
 
     // Vectors for loop
     const _camPos = new THREE.Vector3()
@@ -628,6 +807,10 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     const _dummyMat = new THREE.Matrix4()
     const _dummyPos = new THREE.Vector3()
     const _lateralVec = new THREE.Vector3()
+    const _unprojectDir = new THREE.Vector3()
+    const _aboutOffset = new THREE.Vector3()
+    const _aboutTargetPos = new THREE.Vector3()
+    const _tempGroundColor = new THREE.Color()
 
     const clock = new THREE.Clock()
     let animId: number
@@ -637,8 +820,8 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       const time = clock.getElapsedTime()
       const s = stateRef.current
 
-      // 1. Virtual Scroller Update (lerpAmount = 0.18)
-      s.scrollerCurrentY = THREE.MathUtils.lerp(s.scrollerCurrentY, s.scrollerDeltaY, 0.18)
+      // 1. Virtual Scroller Update (lerpAmount = 0.09 for silky momentum glide)
+      s.scrollerCurrentY = THREE.MathUtils.lerp(s.scrollerCurrentY, s.scrollerDeltaY, 0.09)
       s.completion = s.scrollerCurrentY / s.scrollerRange
 
       // -------------------------------------------------------------
@@ -708,32 +891,19 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       s.Am = THREE.MathUtils.lerp(s.Am, s.completion, 0.025 * s.progressAmp)
       const Am = THREE.MathUtils.clamp(s.Am, 0.0001, 0.9999)
 
-      const targetAbout = s.isAboutOpen ? 1 : 0
-      s.aboutLerp = THREE.MathUtils.lerp(s.aboutLerp, targetAbout, 0.08)
-
       // 1. Camera along flight path
       flightCurve.getPointAt(Am, _camPos)
       flightCurve.getTangentAt(Am, _camTangent)
       _camLookAt.copy(_camPos).add(_camTangent)
 
-      // 2. Airplane sampled ahead along path
+      // 2. Flight Airplane sampled ahead along flight path
       const planeLeadT = Math.min(Am + 0.05 / curveSizeFactor, 1.0)
       const lookAtLeadT = Math.min(Am + 0.1 / curveSizeFactor, 1.0)
       flightCurve.getPointAt(planeLeadT, _planeInitPos)
       flightCurve.getPointAt(lookAtLeadT, _planeLookAtPos)
 
-      if (s.aboutLerp > 0.01) {
-        // ABOUT MODAL: Plane banks 90 degrees to side profile on the left
-        const sideOffset = new THREE.Vector3(-2.2, 0.2 + Math.sin(time * 1.5) * 0.06, -5.2)
-        sideOffset.applyQuaternion(camera.quaternion)
-        const targetSidePos = camera.position.clone().add(sideOffset)
-        planeGroup.position.lerp(targetSidePos, 0.1)
-
-        const sideEuler = new THREE.Euler(0, Math.PI / 2 + 0.1, -0.05, 'YXZ')
-        const sideQuat = new THREE.Quaternion().setFromEuler(sideEuler)
-        planeGroup.quaternion.slerp(sideQuat, 0.1)
-      } else if (!s.hasEnded) {
-        // NORMAL FLIGHT MODE: Exact Atmos smooth flight curve tracking & gentle aerodynamic bob
+      if (!s.hasEnded) {
+        // FLIGHT AIRPLANE: Strictly tracks flight curve without ever being displaced by About modal
         const flightX = _planeInitPos.x + 0.1 * (-0.5 + Math.sin(0.5 * time))
         const flightY = _planeInitPos.y + 0.2 * Math.sin(time) + s.introPosition.y
         const flightZ = _planeInitPos.z + s.introPosition.z
@@ -744,6 +914,22 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
         const turnRoll = 0.15 * (_planeLookAtPos.x - planeGroup.position.x)
         planeGroup.rotation.z += turnRoll
       }
+
+      // 3. ABOUT AIRPLANE (IN DEDICATED ABOUT SCENE):
+      // Positioned on the left side of screen via unproject, facing forward
+      // (Wings horizontal, tail fin straight up, rear facing camera, nose forward)
+      const xDynamicsVal = s.aboutDummy.value * s.aboutXPosition
+      const tAbout = xDynamicsVal + 0.05 * Math.sin(0.4 * time)
+      const iAbout = 0.18 * Math.sin(0.6 * time) + s.aboutYDynamics.value
+
+      _unprojectDir.set(tAbout, iAbout, 0).unproject(aboutCamera)
+      _aboutOffset.copy(_unprojectDir).sub(aboutCamera.position).multiplyScalar(s.aboutDistanceFactor.value)
+      _aboutTargetPos.copy(_unprojectDir).add(_aboutOffset)
+
+      aboutPlaneGroup.position.copy(_aboutTargetPos)
+      aboutPlaneGroup.quaternion.copy(aboutCamera.quaternion)
+      aboutSkyMesh.position.copy(aboutCamera.position)
+      ;(aboutSkyMesh.material as THREE.ShaderMaterial).uniforms.uTime.value = time
 
       // Camera position with text framing (Atmos signature framing)
       if (s.isExploring && !s.hasEnded) {
@@ -756,11 +942,11 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
           0,
           1
         )
-        const tOffset = eFactor * (closestTextItem.alignFactor || 1.0) * 2.5 * cameraOffsetFactor
-        if (Math.abs(tOffset) > 0.001) {
+        const tOffset = eFactor * (closestTextItem.positionOffset?.x ?? 1.0) * 3.0
+        if (Math.abs(tOffset) > 0.0001) {
           _lateralVec.set(1, 0, 0).applyQuaternion(camera.quaternion)
-          camera.position.add(_lateralVec.multiplyScalar(tOffset))
-          camera.rotation.y += 0.08 * -tOffset
+          camera.position.add(_lateralVec.multiplyScalar(tOffset * cameraOffsetFactor))
+          camera.rotation.y += 0.1 * -tOffset
         }
       } else if (!s.isExploring) {
         camera.position.set(0, 0, 8)
@@ -771,50 +957,170 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       skyMesh.position.copy(camera.position)
       skyMaterial.uniforms.uTime.value = time
       skyMaterial.uniforms.uGradientMixer.value = Am / 0.95
+      skyMesh.rotation.x = 0
 
       // -------------------------------------------------------------
-      // SPEED LINES / WIND PARTICLES (EXACT ATMOS COCKPIT SLIPSTREAM)
-      // Max 0.035 opacity (3.5%), ultra-subtle aerodynamic vapor streaks!
+      // SPEED LINES / WIND PARTICLES (AUTHENTIC AERODYNAMIC SLIPSTREAM)
+      // Anchored to flight plane orientation and trailing strictly behind the aircraft wings
       // -------------------------------------------------------------
-      flightCurve.getPointAt(Math.min(Am + 0.01 / curveSizeFactor, 1.0), windMesh.position)
-      windMesh.lookAt(_camLookAt)
+      windMesh.position.copy(planeGroup.position)
+      windMesh.quaternion.copy(planeGroup.quaternion)
+
+      const flightDelta = Math.max(0, s.completion - s.Am)
+      const forwardDelta = Math.max(0, s.scrollerDeltaY - s.scrollerCurrentY) / s.scrollerRange
+      const speedMultiplier = 1.0 + flightDelta * 35.0
 
       for (let i = 0; i < windCount; i++) {
-        windMesh.getMatrixAt(i, _dummyMat)
-        _dummyPos.setFromMatrixPosition(_dummyMat)
-        _dummyPos.z += 0.25 * (1 + (i % 5))
-        _dummyPos.z = ((_dummyPos.z + 40) % 80) - 40
-        _dummyMat.setPosition(_dummyPos)
-        windMesh.setMatrixAt(i, _dummyMat)
+        let pz = particlePositions[i * 3 + 2] + particleSpeeds[i] * speedMultiplier
+        if (pz > 9.5) {
+          pz = 1.2 + Math.random() * 0.6
+          const angle = Math.random() * Math.PI * 2
+          const radiusX = 1.0 + Math.random() * 3.2
+          const radiusY = 0.2 + Math.random() * 0.9
+          particlePositions[i * 3] = Math.cos(angle) * radiusX
+          particlePositions[i * 3 + 1] = Math.sin(angle) * radiusY
+        }
+        particlePositions[i * 3 + 2] = pz
+
+        _particlePos.set(particlePositions[i * 3], particlePositions[i * 3 + 1], pz)
+        _particleMatrix.compose(_particlePos, new THREE.Quaternion(), _particleScale)
+        windMesh.setMatrixAt(i, _particleMatrix)
       }
       windMesh.instanceMatrix.needsUpdate = true
 
-      // Forward scroll velocity driven (only when scrolling forward)
-      const forwardDelta = Math.max(0, s.scrollerDeltaY - s.scrollerCurrentY) * 0.0003
-      const targetWindOpacity = (s.isExploring && !s.hasEnded) ? Math.min(forwardDelta, 0.035) : 0
-      windMat.opacity = THREE.MathUtils.lerp(windMat.opacity, targetWindOpacity, 0.06)
+      // 3D Objects in flight scene
+      planeGroup.visible = s.isExploring
+      trailMesh.visible = s.isExploring && !s.hasEnded
+      windMesh.visible = s.isExploring && !s.hasEnded
+      if (s.isExploring && !s.hasEnded) {
+        trailMat.opacity = THREE.MathUtils.lerp(trailMat.opacity, 0.45, 0.05)
+      } else {
+        trailMat.opacity = 0
+      }
 
-      // 3D TROIKA TEXTS DISTANCE FADING
-      textItems.forEach(({ group, sup, title, body }) => {
-        const dist = camera.position.distanceTo(group.position)
+      // Speed lines opacity tied to forward momentum:
+      // Appears on scroll/swipe, persists while plane glides forward, then smoothly fades out when stopping
+      const targetWindOpacity = (s.isExploring && !s.hasEnded)
+        ? Math.min(flightDelta * 14.0 + forwardDelta * 12.0, 0.065)
+        : 0
+      windMat.opacity = THREE.MathUtils.lerp(windMat.opacity, targetWindOpacity, 0.075)
+
+      // -------------------------------------------------------------
+      // DYNAMIC ATMOSPHERIC LIGHTING (1:1 LEEROY ATMOS PARITY)
+      // 3D objects (airplane, clouds, elephant) dynamically absorb the ambient bounce light of the sky
+      // -------------------------------------------------------------
+      const normalizedProgress = THREE.MathUtils.clamp(Am / 0.95, 0, 1)
+      const stepVal = (ATMOS_LIGHT_GROUND_COLORS.length - 1) * normalizedProgress
+      const prevIdx = Math.floor(stepVal)
+      const stepFrac = stepVal - prevIdx
+      const nextIdx = Math.min(prevIdx + 1, ATMOS_LIGHT_GROUND_COLORS.length - 1)
+      const curIdx = Math.min(prevIdx, ATMOS_LIGHT_GROUND_COLORS.length - 1)
+
+      _tempGroundColor.lerpColors(
+        ATMOS_LIGHT_GROUND_COLORS[curIdx],
+        ATMOS_LIGHT_GROUND_COLORS[nextIdx],
+        stepFrac
+      )
+      hemiLight.groundColor.copy(_tempGroundColor)
+
+      // Clouds distance & intro fading
+      const currentIntroAlpha = s.introCloudAlpha.value
+      cloudsList.forEach(({ mesh, pos }) => {
+        if (!s.isExploring || currentIntroAlpha < 0.01) {
+          mesh.visible = false
+          ;(mesh.material as THREE.MeshLambertMaterial).opacity = 0
+          return
+        }
+        mesh.visible = true
+        const dist = camera.position.distanceTo(pos)
         let alpha = THREE.MathUtils.clamp(1 - dist / 30, 0, 1)
         alpha = 2.0 * Math.pow(alpha, 2)
-        alpha = Math.min(alpha, 1.0)
-
-        if (sup) sup.material.opacity = alpha
-        if (title) title.material.opacity = alpha
-        body.material.opacity = alpha
+        ;(mesh.material as THREE.MeshLambertMaterial).opacity = Math.min(alpha * currentIntroAlpha, 1.0)
       })
 
-      // Clouds distance-based fading
-      cloudsList.forEach(({ mesh, pos }) => {
-        const dist = camera.position.distanceTo(pos)
-        let alpha = THREE.MathUtils.clamp(1 - dist / 35, 0, 1)
-        alpha = 1.8 * Math.pow(alpha, 2)
-        ;(mesh.material as THREE.MeshStandardMaterial).opacity = Math.min(alpha, 0.85)
+      // Elephant bobbing animation
+      if (elephantMesh) {
+        if (!s.isExploring || currentIntroAlpha < 0.01) {
+          elephantMesh.visible = false
+        } else {
+          elephantMesh.visible = true
+          elephantMesh.position.y = elephantInitY + 1.0 * Math.sin(0.2 * time)
+          elephantMesh.rotation.y += 0.001
+          const elDist = camera.position.distanceTo(elephantMesh.position)
+          let elAlpha = THREE.MathUtils.clamp(1 - elDist / 30, 0, 1)
+          elAlpha = 2.0 * Math.pow(elAlpha, 2)
+          elephantMesh.traverse((c) => {
+            if ((c as THREE.Mesh).isMesh) {
+              ;((c as THREE.Mesh).material as THREE.MeshLambertMaterial).opacity = Math.min(elAlpha * currentIntroAlpha, 0.85)
+            }
+          })
+        }
+      }
+
+      // 3D TROIKA TEXTS DISTANCE FADING (1:1 ATMOS QUADRATIC FORMULA)
+      textItems.forEach(({ group, sup, title, body }) => {
+        if (!s.isExploring) {
+          group.visible = false
+          return
+        }
+        const dist = camera.position.distanceTo(group.position)
+        let alpha = THREE.MathUtils.clamp(1 - dist / 30, 0, 1)
+        alpha = Math.min(2.0 * Math.pow(alpha, 2), 1.0)
+
+        if (alpha < 0.01) {
+          group.visible = false
+        } else {
+          group.visible = true
+          if (sup) sup.material.opacity = alpha
+          if (title) title.material.opacity = alpha
+          body.material.opacity = alpha
+        }
       })
 
-      renderer.render(scene, camera)
+      // -------------------------------------------------------------
+      // AUTHENTIC LEEROY ATMOS DUAL-SCENE WAVECLIP TRANSITION RENDERER
+      // -------------------------------------------------------------
+      transitionMat.uniforms.uProgress.value = s.transitionProgress.value
+
+      if (s.transitionMode === 'NONE') {
+        if (s.currentScene === 'FLIGHT') {
+          renderer.render(scene, camera)
+        } else {
+          renderer.render(aboutScene, aboutCamera)
+        }
+      } else if (s.transitionMode === 'TO_ABOUT') {
+        // Render flight scene to rtFlight
+        renderer.setRenderTarget(rtFlight)
+        renderer.render(scene, camera)
+
+        // Render about scene to rtAbout
+        renderer.setRenderTarget(rtAbout)
+        renderer.render(aboutScene, aboutCamera)
+
+        // Blend on screen with Perlin noise wave transition
+        transitionMat.uniforms.uTexture1.value = rtFlight.texture
+        transitionMat.uniforms.uTexture2.value = rtAbout.texture
+        transitionMat.uniforms.uDirection.value = -1
+
+        renderer.setRenderTarget(null)
+        renderer.render(transitionScene, orthoCamera)
+      } else if (s.transitionMode === 'TO_FLIGHT') {
+        // Render about scene to rtAbout
+        renderer.setRenderTarget(rtAbout)
+        renderer.render(aboutScene, aboutCamera)
+
+        // Render flight scene to rtFlight
+        renderer.setRenderTarget(rtFlight)
+        renderer.render(scene, camera)
+
+        // Blend on screen with Perlin noise wave transition back to flight
+        transitionMat.uniforms.uTexture1.value = rtAbout.texture
+        transitionMat.uniforms.uTexture2.value = rtFlight.texture
+        transitionMat.uniforms.uDirection.value = 0
+
+        renderer.setRenderTarget(null)
+        renderer.render(transitionScene, orthoCamera)
+      }
 
       // Notify parent of progress & completion for HUD/scrollbar
       if (Date.now() - lastProgressReportTime > 30) {
@@ -828,10 +1134,21 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
     render()
 
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight
-      camera.updateProjectionMatrix()
+      stateRef.current.aboutXPosition = window.innerWidth > 1000 ? -0.4 : 0
+      updateCameraFov()
+      updateSkyYCompression()
+
+      const dpr = Math.min(window.devicePixelRatio, 2)
       renderer.setSize(window.innerWidth, window.innerHeight)
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      renderer.setPixelRatio(dpr)
+
+      rtFlight.setSize(window.innerWidth * dpr, window.innerHeight * dpr)
+      rtAbout.setSize(window.innerWidth * dpr, window.innerHeight * dpr)
+
+      aboutCamera.aspect = window.innerWidth / window.innerHeight
+      let aboutFov = THREE.MathUtils.mapLinear(aboutCamera.aspect, 1.6, 0.6, 60, 90)
+      aboutCamera.fov = THREE.MathUtils.clamp(aboutFov, 60, 90)
+      aboutCamera.updateProjectionMatrix()
     }
     window.addEventListener('resize', handleResize)
 
@@ -840,7 +1157,12 @@ export const AtmosCanvas: React.FC<AtmosCanvasProps> = ({
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('touchstart', onTouchStart)
       window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
       cancelAnimationFrame(animId)
+      rtFlight.dispose()
+      rtAbout.dispose()
+      transitionMat.dispose()
+      transitionQuad.geometry.dispose()
       renderer.dispose()
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement)

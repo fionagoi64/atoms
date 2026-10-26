@@ -1,5 +1,6 @@
-import React, { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { SoundButton } from "./SoundButton";
+import { RollTitle } from "./RollTitle";
 
 interface FlightHUDProps {
   progress: number;
@@ -23,8 +24,21 @@ export const FlightHUD = ({
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
-  const showScrollbar = isExploring && !isEnded;
-  const showHint = isExploring && progress < 0.02 && !isEnded;
+  const [aboutBtnVisible, setAboutBtnVisible] = useState(true);
+
+useEffect(() => {
+    if (isAboutOpen) {
+      setAboutBtnVisible(false);
+    } else if (isExploring) {
+      const timer = setTimeout(() => {
+        setAboutBtnVisible(true);
+      }, 1400);
+      return () => clearTimeout(timer);
+    }
+  }, [isAboutOpen, isExploring]);
+
+  const showScrollbar = isExploring && !isEnded && !isAboutOpen;
+  const showHint = isExploring && progress < 0.02 && !isEnded && !isAboutOpen;
 
   // Handle clicking or dragging along the scrollbar track
   const handleSeekFromEvent = useCallback(
@@ -71,13 +85,13 @@ export const FlightHUD = ({
         <SoundButton />
       </div>
 
-      {/* About button on top-right */}
+      {/* About button on top-right with 3D flip text */}
       <button
         onClick={onOpenAbout}
-        className={`about-btn ${isExploring && !isAboutOpen ? "about-btn--in" : ""}`}
+        className={`about-btn ${isExploring && !isAboutOpen && aboutBtnVisible ? "about-btn--in" : ""}`}
         aria-label="Open About"
       >
-        About
+        <RollTitle text="About" />
       </button>
 
       {/* Center hint: "Scroll to begin the journey" */}

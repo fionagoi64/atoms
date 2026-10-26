@@ -39,6 +39,10 @@ html, body {
   user-select: none;
 }
 
+html {
+  font-size: 10px;
+}
+
 .font-newyork {
   font-family: "_NewYork", Georgia, serif;
 }
@@ -94,7 +98,7 @@ html, body {
 }
 
 .intro__title h1 {
-  font-size: min(20vw, 18rem);
+  font-size: min(20vw, 20rem);
   font-family: "_NewYork", Georgia, serif;
   font-weight: normal;
   white-space: nowrap;
@@ -190,7 +194,7 @@ html, body {
   text-align: center;
   color: #fff;
   font-family: "DMSans", "DM Sans", sans-serif;
-  font-size: 1.8rem;
+  font-size: 2rem;
   letter-spacing: 0.02em;
   transform: translate(-50%, -50%);
   opacity: 0;
@@ -217,57 +221,141 @@ html, body {
  * ------------------------------------------------------------- */
 .about-btn {
   position: fixed;
-  top: 32px;
-  right: 80px;
-  font-size: 1.4rem;
+  top: 40px;
+  right: 110px;
+  font-size: 2rem;
   color: #fff;
   cursor: pointer;
+  border-radius: 50px;
   font-family: "DMSans", "DM Sans", sans-serif;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.6s ease-in-out, transform 0.3s ease;
-  z-index: 40;
+  transition: 0.75s opacity ease-in-out;
+  z-index: 50;
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+}
+
+@media (max-width: 1200px) {
+  .about-btn {
+    right: 80px;
+  }
 }
 
 @media (max-width: 640px) {
   .about-btn {
+    font-size: 1.6rem;
     right: 24px;
-    font-size: 1.2rem;
+    top: 32px;
   }
 }
 
 .about-btn--in {
   pointer-events: auto;
-  opacity: 0.85;
+  opacity: 1 !important;
 }
 
-.about-btn--in:hover {
-  opacity: 1;
+/* -------------------------------------------------------------
+ * 3D CYLINDRICAL FLIP COMPONENT (ROLL-TITLE)
+ * ------------------------------------------------------------- */
+.roll-title {
+  position: relative;
+  perspective: 500px;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
+.roll-title div:first-child {
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
+.roll-title div:last-child {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
+.roll-title div:last-child:after {
+  content: attr(data-content);
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------
+ * AUTHENTIC ATMOS 45-DEG CLOSE BUTTON WITH SEQUENTIAL LINE ANIMATION
+ * ------------------------------------------------------------- */
 .close-btn {
   position: fixed;
-  top: 36px;
-  right: 80px;
+  top: 40px;
+  right: 110px;
   cursor: pointer;
   pointer-events: none;
   opacity: 0;
-  width: 28px;
-  height: 28px;
-  transition: opacity 0.5s linear;
+  width: 31px;
+  height: 31px;
+  transition: 0.75s opacity linear;
   transform: rotate(45deg);
-  z-index: 50;
+  z-index: 60;
+}
+
+@media (max-width: 1200px) {
+  .close-btn {
+    right: 80px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .close-btn {
+    right: 6%;
+  }
 }
 
 @media (max-width: 640px) {
   .close-btn {
     right: 24px;
+    top: 32px;
+    width: 26px;
+    height: 26px;
   }
 }
 
 .close-btn--in {
   pointer-events: auto;
-  opacity: 1;
+  opacity: 1 !important;
+}
+
+.close-btn--in div:first-child {
+  animation: closeInX 0.75s ease-in-out 1 both;
+}
+
+.close-btn--in div:last-child {
+  animation: closeInY 0.75s ease-in-out 1 both;
+  animation-delay: 0.5s;
+}
+
+.close-btn--out {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.close-btn--out div:first-child {
+  animation: closeOutX 0.5s ease-in-out 1 both;
+}
+
+.close-btn--out div:last-child {
+  animation: closeOutY 0.5s ease-in-out 1 both;
+  animation-delay: 0.25s;
 }
 
 .close-btn div {
@@ -289,6 +377,26 @@ html, body {
   top: 0;
   left: 50%;
   transform-origin: 50% 100%;
+}
+
+@keyframes closeInX {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes closeInY {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes closeOutX {
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+
+@keyframes closeOutY {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
 }
 
 .sound-btn {
@@ -390,7 +498,7 @@ html, body {
 }
 
 /* -------------------------------------------------------------
- * ABOUT MODAL & REFERENCES
+ * ABOUT MODAL & REFERENCES (AUTHENTIC ATMOS STYLES)
  * ------------------------------------------------------------- */
 .about {
   position: fixed;
@@ -405,45 +513,113 @@ html, body {
   display: flex;
   user-select: text;
   background-color: transparent;
-  transition: opacity 0.6s ease-in-out, background-color 0.8s ease-in-out;
+  transition: opacity 0.75s ease-in-out, background-color 1s linear;
   z-index: 45;
 }
 
 .about--in {
   pointer-events: auto;
   opacity: 1;
-  background-color: rgba(10, 8, 191, 0.2);
-  backdrop-filter: blur(4px);
+}
+
+.about--out {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.about .about__content > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.about--in .about__content > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.about--in .about__content > *:nth-child(1) { transition-delay: 0.3s; }
+.about--in .about__content > *:nth-child(2) { transition-delay: 0.45s; }
+.about--in .about__content > *:nth-child(3) { transition-delay: 0.6s; }
+.about--in .about__content > *:nth-child(4) { transition-delay: 0.75s; }
+.about--in .about__content > *:nth-child(5) { transition-delay: 0.9s; }
+.about--in .about__content > *:nth-child(6) { transition-delay: 1.05s; }
+
+.about--out .about__content > * {
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: opacity 0.5s ease-in, transform 0.5s ease-in;
+}
+
+@media (max-width: 1050px) {
+  .about--in {
+    background-color: rgba(10, 8, 191, 0.2);
+  }
 }
 
 .about__content {
+  left: 50%;
+  width: 50%;
   margin-left: auto;
-  width: 55%;
-  padding: 160px 10% 160px 0;
+  padding: 220px 14% 220px 0;
   box-sizing: border-box;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1050px) {
+  .about__content {
+    width: 55%;
+    padding: 200px 10% 200px 0;
+  }
+}
+
+@media (max-width: 1000px) {
   .about__content {
     width: 100%;
-    padding: 120px 8% 120px 8%;
+    padding: 200px 15% 200px 15%;
+  }
+}
+
+@media (max-width: 600px) {
+  .about__content {
+    padding: 160px 8% 160px 8%;
   }
 }
 
 .about h2 {
-  font-size: 3.8rem;
+  font-size: 5rem;
   font-family: "_NewYork", Georgia, serif;
   text-transform: uppercase;
   font-weight: normal;
-  margin-top: 60px;
+  letter-spacing: 0.04em;
+  margin-top: 100px;
   margin-bottom: 24px;
 }
 
+@media (max-width: 550px) {
+  .about h2 {
+    font-size: 4rem;
+  }
+}
+
 .about p {
-  font-size: 1.35rem;
+  font-size: 2rem;
   font-family: "DMSans", "DM Sans", sans-serif;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .about p {
+    font-size: 1.6rem;
+  }
+}
+
+.about p a {
+  margin-top: 10px;
+  display: block;
+  text-decoration: underline;
+  color: #fff;
 }
 
 .about a {
@@ -452,7 +628,57 @@ html, body {
 }
 
 .about a:hover {
-  opacity: 0.7;
+  opacity: 0.75;
+}
+
+.about__p-music {
+  margin-top: 100px;
+  font-size: 1.6rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.about__p-music a {
+  display: inline !important;
+}
+
+.reference {
+  border-bottom: 1px solid #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 0;
+  text-decoration: none;
+  color: #fff;
+  transition: opacity 0.2s ease;
+}
+
+.reference:first-of-type {
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.reference:hover {
+  opacity: 0.8;
+}
+
+.reference__title {
+  font-size: 3rem;
+  font-family: "DMSans", "DM Sans", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 720px) {
+  .reference__title {
+    font-size: 2.5rem;
+  }
+}
+
+.reference__source-link {
+  font-size: 2rem;
+  font-family: "DMSans", "DM Sans", sans-serif;
+  color: #fff;
+  font-weight: 400;
 }
 
 /* -------------------------------------------------------------
@@ -484,7 +710,7 @@ html, body {
 
 @media (max-width: 640px) {
   .outro {
-    font-size: 1.8rem;
+    font-size: 2rem;
     padding: 10vw;
   }
 }
@@ -497,11 +723,15 @@ html, body {
 }
 
 .outro p {
-  max-width: 760px;
+  max-width: 750px;
   line-height: 1.5;
   margin: 0;
   font-weight: 300;
   letter-spacing: -0.01em;
+}
+
+.outro p:first-of-type {
+  margin-top: 50px;
 }
 
 .outro__cta {
@@ -509,3 +739,53 @@ html, body {
   width: 190px;
   margin-top: 48px;
 }
+
+/* -------------------------------------------------------------
+ * FLIGHT CANYON BOTTOM ATMOSPHERE GLOW
+ * ------------------------------------------------------------- */
+.flight-glow {
+  position: fixed;
+  bottom: -10vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140vw;
+  height: 56vh;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.95) 0%, rgba(242, 247, 255, 0.7) 22%, rgba(210, 230, 255, 0.35) 45%, rgba(180, 210, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+}
+
+/* -------------------------------------------------------------
+ * AUTHENTIC ATMOS FILM GRAIN OVERLAY
+ * ------------------------------------------------------------- */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* -------------------------------------------------------------
+ * AUTHENTIC ATMOS RADIAL BLUR VIGNETTE
+ * Softens clouds around the edges and bottom while keeping center crisp
+ * ------------------------------------------------------------- */
+.radial-blur-vignette {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  mask-image: radial-gradient(ellipse 65% 65% at 50% 48%, transparent 35%, rgba(0, 0, 0, 0.65) 70%, black 100%);
+  -webkit-mask-image: radial-gradient(ellipse 65% 65% at 50% 48%, transparent 35%, rgba(0, 0, 0, 0.65) 70%, black 100%);
+}
+

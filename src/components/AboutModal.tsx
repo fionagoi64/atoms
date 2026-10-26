@@ -1,18 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { ATMOS_FACTS } from "../data/atmosData";
+import { RollTitle } from "./RollTitle";
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const AboutModal= ({ isOpen, onClose }:AboutModalProps) => {
+export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
+  const [isClosing, setIsClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMounted(true);
+      setIsClosing(false);
+    } else {
+      setIsClosing(true);
+      const timer = setTimeout(() => {
+        setMounted(false);
+        setIsClosing(false);
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    onClose();
+  };
+
+  if (!isOpen && !mounted) return null;
+
+  const showIn = isOpen && !isClosing;
+
   return (
     <>
-      {/* Authentic Atmos Close Button */}
+      {/* Authentic Atmos 45deg Close Button with 2-line sequential draw animation */}
       <div
-        onClick={onClose}
-        className={`close-btn ${isOpen ? "close-btn--in" : ""}`}
+        onClick={handleClose}
+        className={`close-btn ${showIn ? "close-btn--in" : isClosing ? "close-btn--out" : ""}`}
         aria-label="Close About"
         role="button"
         tabIndex={0}
@@ -21,47 +49,47 @@ export const AboutModal= ({ isOpen, onClose }:AboutModalProps) => {
         <div />
       </div>
 
-      {/* Slide & Fade About Content Panel */}
-      <div className={`about ${isOpen ? "about--in" : ""}`}>
+      {/* Slide & Fade About Content Panel (Placed strictly on the right half on desktop) */}
+      <div className={`about ${showIn ? "about--in" : isClosing ? "about--out" : ""}`}>
         <div className="about__content">
-          <p className="about__p text-lg sm:text-xl font-light mb-12">
+          <p className="about__p mb-16">
             Want to further your experience and learn more about the aviation
             industry? Check out these resources that Atmos is based upon.
           </p>
 
-          <h2 className="font-newyork text-4xl sm:text-5xl uppercase tracking-wider font-normal mb-8 border-b border-white/20 pb-4">
+          <h2 className="font-newyork mb-8">
             References
           </h2>
 
-          <div className="divide-y divide-white/20 mb-16 border-t">
+          <div className="reference-list mb-16">
             {ATMOS_FACTS.map((fact, idx) => (
               <a
                 key={idx}
                 href={fact.source}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between py-4 group hover:opacity-75 transition-opacity"
+                className="reference group"
               >
-                <span className="font-medium tracking-wide text-sm sm:text-base uppercase">
+                <span className="reference__title">
                   {fact.title}
                 </span>
-                <span className="text-xs sm:text-sm text-white/80 font-light flex items-center gap-1">
-                  See the source ↗
+                <span className="reference__source-link">
+                  <RollTitle text="See the source ↗" />
                 </span>
               </a>
             ))}
           </div>
 
-          <h2 className="font-newyork text-3xl sm:text-4xl uppercase tracking-wider font-normal mt-12 mb-6">
+          <h2 className="font-newyork mt-16 mb-6">
             Leeroy's Playground
           </h2>
-          <p className="about__p text-base sm:text-lg font-light leading-relaxed mb-6">
+          <p className="about__p mb-6">
             This experiment is part of{" "}
             <a
               href="https://play.leeroy.ca/"
               target="_blank"
               rel="noreferrer"
-              className="underline font-medium inline-block hover:opacity-80"
+              className="underline hover:opacity-80 inline"
             >
               Leeroy's Playground
             </a>
@@ -71,19 +99,19 @@ export const AboutModal= ({ isOpen, onClose }:AboutModalProps) => {
               href="https://leeroy.ca/en"
               target="_blank"
               rel="noreferrer"
-              className="underline font-medium ml-1 hover:opacity-80"
+              className="underline ml-1 hover:opacity-80 inline"
             >
               Web Agency
             </a>
           </p>
 
-          <p className="about__p-music text-sm text-white/60 pt-4">
+          <p className="about__p-music pt-6">
             Music by{" "}
             <a
               href="https://freemusicarchive.org/music/independent-music-licensing-collective-imlc/emotive-ambience-licensing-pack-ketsa"
               target="_blank"
               rel="noreferrer"
-              className="underline text-white/80 hover:opacity-80"
+              className="underline hover:opacity-80 inline"
             >
               Ketsa
             </a>

@@ -1,67 +1,70 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { AtmosCanvas } from './components/AtmosCanvas'
-import { IntroScreen } from './components/IntroScreen'
-import { FlightHUD } from './components/FlightHUD'
-import { AboutModal } from './components/AboutModal'
-import { OutroScreen } from './components/OutroScreen'
-import gsap from 'gsap'
+import React, { useState, useEffect, useCallback } from "react";
+import { AtmosCanvas } from "./components/AtmosCanvas";
+import { IntroScreen } from "./components/IntroScreen";
+import { FlightHUD } from "./components/FlightHUD";
+import { AboutModal } from "./components/AboutModal";
+import { OutroScreen } from "./components/OutroScreen";
+import gsap from "gsap";
 
-export const App: React.FC = () => {
-  const [isExploring, setIsExploring] = useState(false)
-  const [isAboutOpen, setIsAboutOpen] = useState(false)
-  const [isEnded, setIsEnded] = useState(false)
-  const [isOutroVisible, setIsOutroVisible] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [completion, setCompletion] = useState(0)
-  const [seekRatio, setSeekRatio] = useState<number | null>(null)
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+export const App = () => {
+  const [isExploring, setIsExploring] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isEnded, setIsEnded] = useState(false);
+  const [isOutroVisible, setIsOutroVisible] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [completion, setCompletion] = useState(0);
+  const [seekRatio, setSeekRatio] = useState<number | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    const x = (e.clientX / window.innerWidth) * 2 - 1
-    const y = -(e.clientY / window.innerHeight) * 2 + 1
-    setMousePos({ x, y })
-  }, [])
+    const x = (e.clientX / window.innerWidth) * 2 - 1;
+    const y = -(e.clientY / window.innerHeight) * 2 + 1;
+    setMousePos({ x, y });
+  }, []);
 
   useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [handleMouseMove])
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [handleMouseMove]);
 
   const handleStartExplore = () => {
-    setIsExploring(true)
-  }
+    setIsExploring(true);
+  };
 
-  const handleProgressChange = useCallback((prog: number, comp: number) => {
-    setProgress(prog)
-    setCompletion(comp)
-    if (prog >= 0.95 && !isEnded) {
-      setIsEnded(true)
-    }
-  }, [isEnded])
+  const handleProgressChange = useCallback(
+    (prog: number, comp: number) => {
+      setProgress(prog);
+      setCompletion(comp);
+      if (prog >= 0.95 && !isEnded) {
+        setIsEnded(true);
+      }
+    },
+    [isEnded],
+  );
 
   const handleSeek = (ratio: number) => {
-    setSeekRatio(ratio)
-  }
+    setSeekRatio(ratio);
+  };
 
   // Atmos Ending Restart Flow: Fades body to white/transparent and reloads page
   const handleRestart = () => {
     gsap.to(document.body, {
       opacity: 0,
       duration: 1.0,
-      ease: 'none',
+      ease: "none",
       onComplete: () => {
-        window.location.reload()
-      }
-    })
-  }
+        window.location.reload();
+      },
+    });
+  };
 
   const handleResetFlight = () => {
-    setIsExploring(false)
-    setIsAboutOpen(false)
-    setIsEnded(false)
-    setIsOutroVisible(false)
-    setSeekRatio(0)
-  }
+    setIsExploring(false);
+    setIsAboutOpen(false);
+    setIsEnded(false);
+    setIsOutroVisible(false);
+    setSeekRatio(0);
+  };
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none">
@@ -74,6 +77,11 @@ export const App: React.FC = () => {
         onProgressChange={handleProgressChange}
         onExploreStart={handleStartExplore}
         onEndReached={() => setIsOutroVisible(true)}
+      />
+
+      {/* Authentic Atmos Bottom Canyon Atmosphere Glow */}
+      <div
+        className={`flight-glow pointer-events-none transition-opacity duration-1000 ${isExploring && !isEnded ? "opacity-100" : "opacity-0"}`}
       />
 
       {/* Intro Landing Screen & Title */}
@@ -95,18 +103,16 @@ export const App: React.FC = () => {
       />
 
       {/* Authentic Outro Ending Screen */}
-      <OutroScreen
-        isVisible={isOutroVisible}
-        onRestart={handleRestart}
-      />
+      <OutroScreen isVisible={isOutroVisible} onRestart={handleRestart} />
 
       {/* About & Aviation References Modal */}
-      <AboutModal
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-      />
-    </div>
-  )
-}
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
 
-export default App
+      {/* Authentic Atmos Film Grain & Radial Blur Overlay */}
+      <div className="radial-blur-vignette" />
+      <div className="film-grain" />
+    </div>
+  );
+};
+
+export default App;
