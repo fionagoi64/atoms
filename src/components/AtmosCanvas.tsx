@@ -17,19 +17,24 @@ import { GrainShader } from "../shaders/grainShader";
  * coloring the underbelly, wings, and shadows of the airplane, clouds, and elephant.
  */
 const makeColor = (r: number, g: number, b: number) =>
-  new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.LinearSRGBColorSpace);
+  new THREE.Color().setRGB(
+    r / 255,
+    g / 255,
+    b / 255,
+    THREE.LinearSRGBColorSpace,
+  );
 
 const ATMOS_LIGHT_GROUND_COLORS = [
-  makeColor(8, 37, 198),    // 0.0 - 0.1: Initial Deep Royal Blue
-  makeColor(8, 37, 198),    // 0.1 - 0.2: Deep Royal Blue
+  makeColor(8, 37, 198), // 0.0 - 0.1: Initial Deep Royal Blue
+  makeColor(8, 37, 198), // 0.1 - 0.2: Deep Royal Blue
   makeColor(116, 136, 234), // 0.2 - 0.3: Soft Lavender Blue
   makeColor(255, 192, 148), // 0.3 - 0.4: Warm Golden Peach (Sunset)
   makeColor(136, 162, 247), // 0.4 - 0.5: Periwinkle Blue
   makeColor(136, 162, 247), // 0.5 - 0.6: Periwinkle Blue
   makeColor(253, 175, 120), // 0.6 - 0.7: Vibrant Sunset Orange
   makeColor(253, 175, 120), // 0.7 - 0.8: Vibrant Sunset Orange
-  makeColor(90, 108, 216),  // 0.8 - 0.9: Twilight Indigo
-  makeColor(90, 108, 216),  // 0.9 - 1.0: Twilight Indigo
+  makeColor(90, 108, 216), // 0.8 - 0.9: Twilight Indigo
+  makeColor(90, 108, 216), // 0.9 - 1.0: Twilight Indigo
 ];
 
 interface AtmosCanvasProps {
@@ -45,10 +50,8 @@ interface AtmosCanvasProps {
 export const AtmosCanvas = ({
   isExploring,
   isAboutOpen,
-  mousePos,
   seekRatio,
   onProgressChange,
-  onExploreStart,
   onEndReached,
 }: AtmosCanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -319,14 +322,17 @@ export const AtmosCanvas = ({
       transparent: true,
       opacity: 0.0,
       depthWrite: false,
+      depthTest: false,
     });
     const trailMesh = new THREE.Mesh(trailGeo, trailMat);
     trailMesh.position.y = -0.5;
+    trailMesh.renderOrder = 50;
     trailMesh.visible = false;
     scene.add(trailMesh);
 
     // Airplane Group (Hidden until explore starts)
     const planeGroup = new THREE.Group();
+    planeGroup.renderOrder = 100;
     planeGroup.visible = false;
     scene.add(planeGroup);
 
@@ -769,8 +775,10 @@ export const AtmosCanvas = ({
           side: THREE.FrontSide,
           transparent: true,
           opacity: 0.0,
+          depthWrite: false,
         });
         const mesh = new THREE.Mesh(geo, mat);
+        mesh.renderOrder = 1;
         mesh.visible = false;
 
         const targetLookAt = new THREE.Vector3();
@@ -1136,13 +1144,13 @@ export const AtmosCanvas = ({
       windMesh.instanceMatrix.needsUpdate = true;
 
       // 3D Objects in flight scene
-      planeGroup.visible = s.isExploring;
-      trailMesh.visible = s.isExploring && !s.hasEnded;
+      planeGroup.visible =
+        s.isExploring && (!s.hasEnded || planeMat.opacity > 0.001);
+      trailMesh.visible =
+        s.isExploring && (!s.hasEnded || trailMat.opacity > 0.001);
       windMesh.visible = s.isExploring && !s.hasEnded;
       if (s.isExploring && !s.hasEnded) {
         trailMat.opacity = THREE.MathUtils.lerp(trailMat.opacity, 0.5, 0.05);
-      } else {
-        trailMat.opacity = 0;
       }
 
       // Dynamic speed lines opacity:
@@ -1326,8 +1334,10 @@ export const AtmosCanvas = ({
       rtFlight.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
       rtAbout.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
 
-      grainMat.uniforms.uXCount.value = window.innerWidth / (window.devicePixelRatio || 1);
-      grainMat.uniforms.uYCount.value = window.innerHeight / (window.devicePixelRatio || 1);
+      grainMat.uniforms.uXCount.value =
+        window.innerWidth / (window.devicePixelRatio || 1);
+      grainMat.uniforms.uYCount.value =
+        window.innerHeight / (window.devicePixelRatio || 1);
 
       aboutCamera.aspect = window.innerWidth / window.innerHeight;
       let aboutFov = THREE.MathUtils.mapLinear(
