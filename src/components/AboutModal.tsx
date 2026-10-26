@@ -20,7 +20,7 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
       const timer = setTimeout(() => {
         setMounted(false);
         setIsClosing(false);
-      }, 1800);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);

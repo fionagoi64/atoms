@@ -67,7 +67,7 @@ export const TransitionShader = {
       vec4 textureColor1 = texture2D(uTexture1, uv);
       vec4 textureColor2 = texture2D(uTexture2, uv);
 
-      float noise = cnoise(vec2(uv.x, uv.y) * 3.0 + uSeed) * uProgress;
+      float noise = cnoise(vec2(uv.x, uv.y) * 3.0 + vec2(uSeed)) * uProgress;
       float offScreenOffset = (-0.5 * uProgress);
       float _step = abs(uv.x + uDirection) + noise + offScreenOffset;
       float mixer = smoothstep(_step - 0.1, _step + 0.1, uProgress);

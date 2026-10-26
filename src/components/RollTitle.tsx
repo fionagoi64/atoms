@@ -7,11 +7,11 @@ interface RollTitleProps {
   onClick?: () => void;
 }
 
-export const RollTitle: React.FC<RollTitleProps> = ({
+export const RollTitle = ({
   text,
   className = "",
   onClick,
-}) => {
+}: RollTitleProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const el1Ref = useRef<HTMLDivElement>(null);
   const el2Ref = useRef<HTMLDivElement>(null);

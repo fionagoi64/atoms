@@ -69,6 +69,8 @@ export const AtmosCanvas = ({
     transitionMode: "NONE" as "NONE" | "TO_ABOUT" | "TO_FLIGHT",
     currentScene: "FLIGHT" as "FLIGHT" | "ABOUT",
     transitionProgress: { value: 0 },
+    transitionSeed: 0,
+    transitionDirection: -1,
     aboutDistanceFactor: { value: 50 },
     aboutYDynamics: { value: -0.5 },
     aboutDummy: { value: 0 },
@@ -90,10 +92,12 @@ export const AtmosCanvas = ({
       if (s.currentScene !== "ABOUT" || s.transitionMode !== "NONE") {
         s.transitionMode = "TO_ABOUT";
         s.transitionProgress.value = 0;
+        s.transitionSeed = 10 * Math.random();
+        s.transitionDirection = -1;
         gsap.killTweensOf(s.transitionProgress);
         gsap.to(s.transitionProgress, {
           value: 1.0,
-          duration: 1.8,
+          duration: 2.0,
           ease: "power2.inOut",
           onComplete: () => {
             s.transitionMode = "NONE";
@@ -131,10 +135,12 @@ export const AtmosCanvas = ({
       if (s.currentScene !== "FLIGHT" || s.transitionMode !== "NONE") {
         s.transitionMode = "TO_FLIGHT";
         s.transitionProgress.value = 0;
+        s.transitionSeed = 10 * Math.random();
+        s.transitionDirection = 0;
         gsap.killTweensOf(s.transitionProgress);
         gsap.to(s.transitionProgress, {
           value: 1.0,
-          duration: 1.8,
+          duration: 2.0,
           ease: "power2.inOut",
           onComplete: () => {
             s.transitionMode = "NONE";
@@ -387,6 +393,15 @@ export const AtmosCanvas = ({
       },
     );
     const rtAbout = new THREE.WebGLRenderTarget(
+      window.innerWidth * dpr,
+      window.innerHeight * dpr,
+      {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+      },
+    );
+    const rtTransition = new THREE.WebGLRenderTarget(
       window.innerWidth * dpr,
       window.innerHeight * dpr,
       {
@@ -1278,15 +1293,16 @@ export const AtmosCanvas = ({
         renderer.setRenderTarget(rtAbout);
         renderer.render(aboutScene, aboutCamera);
 
-        // Blend on screen with Perlin noise wave transition
+        // Blend onto rtTransition with Perlin noise wave transition (NO feedback loop!)
         transitionMat.uniforms.uTexture1.value = rtFlight.texture;
         transitionMat.uniforms.uTexture2.value = rtAbout.texture;
-        transitionMat.uniforms.uDirection.value = -1;
+        transitionMat.uniforms.uDirection.value = s.transitionDirection;
+        transitionMat.uniforms.uSeed.value = s.transitionSeed;
 
-        renderer.setRenderTarget(rtFlight);
+        renderer.setRenderTarget(rtTransition);
         renderer.render(transitionScene, orthoCamera);
 
-        grainMat.uniforms.tDiffuse.value = rtFlight.texture;
+        grainMat.uniforms.tDiffuse.value = rtTransition.texture;
         renderer.setRenderTarget(null);
         renderer.render(grainScene, orthoCamera);
       } else if (s.transitionMode === "TO_FLIGHT") {
@@ -1298,15 +1314,16 @@ export const AtmosCanvas = ({
         renderer.setRenderTarget(rtFlight);
         renderer.render(scene, camera);
 
-        // Blend on screen with Perlin noise wave transition back to flight
+        // Blend back to flight onto rtTransition with Perlin noise wave transition (NO feedback loop!)
         transitionMat.uniforms.uTexture1.value = rtAbout.texture;
         transitionMat.uniforms.uTexture2.value = rtFlight.texture;
-        transitionMat.uniforms.uDirection.value = 0;
+        transitionMat.uniforms.uDirection.value = s.transitionDirection;
+        transitionMat.uniforms.uSeed.value = s.transitionSeed;
 
-        renderer.setRenderTarget(rtAbout);
+        renderer.setRenderTarget(rtTransition);
         renderer.render(transitionScene, orthoCamera);
 
-        grainMat.uniforms.tDiffuse.value = rtAbout.texture;
+        grainMat.uniforms.tDiffuse.value = rtTransition.texture;
         renderer.setRenderTarget(null);
         renderer.render(grainScene, orthoCamera);
       }
@@ -1333,6 +1350,7 @@ export const AtmosCanvas = ({
 
       rtFlight.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
       rtAbout.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
+      rtTransition.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
 
       grainMat.uniforms.uXCount.value =
         window.innerWidth / (window.devicePixelRatio || 1);
@@ -1361,6 +1379,7 @@ export const AtmosCanvas = ({
       cancelAnimationFrame(animId);
       rtFlight.dispose();
       rtAbout.dispose();
+      rtTransition.dispose();
       transitionMat.dispose();
       transitionQuad.geometry.dispose();
       grainMat.dispose();

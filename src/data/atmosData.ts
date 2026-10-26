@@ -158,12 +158,12 @@ export interface CloudConfig {
 export const CLOUD_CONFIGS: CloudConfig[] = [
   { type: 1, progress: 0.034, pos: [5.5, -4.6, 0], scale: [3, 3, 3] },
   { type: 1, progress: 0.037, pos: [10.7, 1, 0], scale: [2, 2, 2] },
-  { type: 1, progress: 0.1, pos: [-0.5, -3, 0], rot: [0, Math.PI, 0] },
+  { type: 1, progress: 0.1, pos: [-0.5, -4.5, 0], rot: [0, Math.PI, 0] },
   { type: 1, progress: 0.12, pos: [-4, -1, 0], scale: [1.3, 1.3, 1.3] },
   { type: 2, progress: 0.16, pos: [3.5, -1, 0], scale: [1, 1, 1] },
   { type: 1, progress: 0.18, pos: [-3, -1, 0] },
   { type: 2, progress: 0.22, pos: [-4.5, 1.5, 0], scale: [-1, 1, 1] },
-  { type: 1, progress: 0.25, pos: [0, -3, 0], scale: [-1, 1, 1], rot: [0, Math.PI, 0] },
+  { type: 1, progress: 0.25, pos: [0, -4.5, 0], scale: [-1, 1, 1], rot: [0, Math.PI, 0] },
   { type: 2, progress: 0.28, pos: [-4, 1.5, 0], scale: [-1, 1, 1] },
   { type: 1, progress: 0.32, pos: [3.5, 0.5, 0], scale: [1, 1, -1] },
   { type: 2, progress: 0.37, pos: [-2.5, -3, 0] },
@@ -177,7 +177,7 @@ export const CLOUD_CONFIGS: CloudConfig[] = [
   { type: 1, progress: 0.69, pos: [4, -2.5, 0], scale: [0.3, 0.3, 0.3] },
   { type: 1, progress: 0.7, pos: [-3, 1, 0], scale: [0.35, 0.35, 0.35] },
   { type: 1, progress: 0.76, pos: [-4, -1, 0], scale: [-1.5, 1.5, 1.5] },
-  { type: 1, progress: 0.85, pos: [-0.5, -3, 0], rot: [0, Math.PI, 0] },
+  { type: 1, progress: 0.85, pos: [-0.5, -4.5, 0], rot: [0, Math.PI, 0] },
   { type: 1, progress: 0.87, pos: [-3, -1, 0], rot: [-1, Math.PI, 0] },
   // Secondary atmospheric layer (cm array from original Atmos)
   { type: 1, progress: 0.053, pos: [-7, -6, 0], scale: [-3.5, 3.5, -3.5] },
