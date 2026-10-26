@@ -107,10 +107,6 @@ export const App = () => {
 
       {/* About & Aviation References Modal */}
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-
-      {/* Authentic Atmos Film Grain & Radial Blur Overlay */}
-      <div className="radial-blur-vignette" />
-      <div className="film-grain" />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { ATMOS_FACTS, CLOUD_CONFIGS } from "../data/atmosData";
 import { createSkyMaterial } from "../shaders/skyShader";
 import { TransitionShader } from "../shaders/transitionShader";
+import { GrainShader } from "../shaders/grainShader";
 
 /**
  * Authentic Atmos Dynamic Atmospheric Ground Bounce Colors (1:1 Leeroy Atmos Parity)
@@ -409,6 +410,27 @@ export const AtmosCanvas = ({
       transitionMat,
     );
     transitionScene.add(transitionQuad);
+
+    // -------------------------------------------------------------
+    // AUTHENTIC LEEROY ATMOS FILM GRAIN COMPOSITOR (1:1 POSTPROCESSING)
+    // 12 FPS stop-motion film grain jitter (intensity 0.065, zero-centered)
+    // -------------------------------------------------------------
+    const grainScene = new THREE.Scene();
+    const grainMat = new THREE.ShaderMaterial({
+      vertexShader: GrainShader.vertexShader,
+      fragmentShader: GrainShader.fragmentShader,
+      uniforms: {
+        tDiffuse: { value: null },
+        time: { value: 0 },
+        uXCount: { value: window.innerWidth / (window.devicePixelRatio || 1) },
+        uYCount: { value: window.innerHeight / (window.devicePixelRatio || 1) },
+        uIntensity: { value: 0.065 },
+      },
+      depthTest: false,
+      depthWrite: false,
+    });
+    const grainQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), grainMat);
+    grainScene.add(grainQuad);
 
     // Setup GLTF & Draco Loaders
     const dracoLoader = new DRACOLoader();
@@ -1222,16 +1244,23 @@ export const AtmosCanvas = ({
       });
 
       // -------------------------------------------------------------
-      // AUTHENTIC LEEROY ATMOS DUAL-SCENE WAVECLIP TRANSITION RENDERER
+      // AUTHENTIC LEEROY ATMOS DUAL-SCENE WAVECLIP & FILM GRAIN RENDERER
       // -------------------------------------------------------------
       transitionMat.uniforms.uProgress.value = s.transitionProgress.value;
+      grainMat.uniforms.time.value = time;
 
       if (s.transitionMode === "NONE") {
         if (s.currentScene === "FLIGHT") {
+          renderer.setRenderTarget(rtFlight);
           renderer.render(scene, camera);
+          grainMat.uniforms.tDiffuse.value = rtFlight.texture;
         } else {
+          renderer.setRenderTarget(rtAbout);
           renderer.render(aboutScene, aboutCamera);
+          grainMat.uniforms.tDiffuse.value = rtAbout.texture;
         }
+        renderer.setRenderTarget(null);
+        renderer.render(grainScene, orthoCamera);
       } else if (s.transitionMode === "TO_ABOUT") {
         // Render flight scene to rtFlight
         renderer.setRenderTarget(rtFlight);
@@ -1246,8 +1275,12 @@ export const AtmosCanvas = ({
         transitionMat.uniforms.uTexture2.value = rtAbout.texture;
         transitionMat.uniforms.uDirection.value = -1;
 
-        renderer.setRenderTarget(null);
+        renderer.setRenderTarget(rtFlight);
         renderer.render(transitionScene, orthoCamera);
+
+        grainMat.uniforms.tDiffuse.value = rtFlight.texture;
+        renderer.setRenderTarget(null);
+        renderer.render(grainScene, orthoCamera);
       } else if (s.transitionMode === "TO_FLIGHT") {
         // Render about scene to rtAbout
         renderer.setRenderTarget(rtAbout);
@@ -1262,8 +1295,12 @@ export const AtmosCanvas = ({
         transitionMat.uniforms.uTexture2.value = rtFlight.texture;
         transitionMat.uniforms.uDirection.value = 0;
 
-        renderer.setRenderTarget(null);
+        renderer.setRenderTarget(rtAbout);
         renderer.render(transitionScene, orthoCamera);
+
+        grainMat.uniforms.tDiffuse.value = rtAbout.texture;
+        renderer.setRenderTarget(null);
+        renderer.render(grainScene, orthoCamera);
       }
 
       // Notify parent of progress & completion for HUD/scrollbar
@@ -1289,6 +1326,9 @@ export const AtmosCanvas = ({
       rtFlight.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
       rtAbout.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
 
+      grainMat.uniforms.uXCount.value = window.innerWidth / (window.devicePixelRatio || 1);
+      grainMat.uniforms.uYCount.value = window.innerHeight / (window.devicePixelRatio || 1);
+
       aboutCamera.aspect = window.innerWidth / window.innerHeight;
       let aboutFov = THREE.MathUtils.mapLinear(
         aboutCamera.aspect,
@@ -1313,6 +1353,8 @@ export const AtmosCanvas = ({
       rtAbout.dispose();
       transitionMat.dispose();
       transitionQuad.geometry.dispose();
+      grainMat.dispose();
+      grainQuad.geometry.dispose();
       renderer.dispose();
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement);
