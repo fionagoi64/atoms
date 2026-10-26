@@ -15,17 +15,20 @@ import { TransitionShader } from "../shaders/transitionShader";
  * The HemisphereLight groundColor dynamically interpolates across these exact 10 stops,
  * coloring the underbelly, wings, and shadows of the airplane, clouds, and elephant.
  */
+const makeColor = (r: number, g: number, b: number) =>
+  new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.LinearSRGBColorSpace);
+
 const ATMOS_LIGHT_GROUND_COLORS = [
-  new THREE.Color("rgb(8, 37, 198)"), // 0.0 - 0.1: Initial Deep Royal Blue
-  new THREE.Color("rgb(8, 37, 198)"), // 0.1 - 0.2: Deep Royal Blue
-  new THREE.Color("rgb(116, 136, 234)"), // 0.2 - 0.3: Soft Lavender Blue
-  new THREE.Color("rgb(255, 192, 148)"), // 0.3 - 0.4: Warm Golden Peach (Sunset)
-  new THREE.Color("rgb(136, 162, 247)"), // 0.4 - 0.5: Periwinkle Blue
-  new THREE.Color("rgb(136, 162, 247)"), // 0.5 - 0.6: Periwinkle Blue
-  new THREE.Color("rgb(253, 175, 120)"), // 0.6 - 0.7: Vibrant Sunset Orange
-  new THREE.Color("rgb(253, 175, 120)"), // 0.7 - 0.8: Vibrant Sunset Orange
-  new THREE.Color("rgb(90, 108, 216)"), // 0.8 - 0.9: Twilight Indigo
-  new THREE.Color("rgb(90, 108, 216)"), // 0.9 - 1.0: Twilight Indigo
+  makeColor(8, 37, 198),    // 0.0 - 0.1: Initial Deep Royal Blue
+  makeColor(8, 37, 198),    // 0.1 - 0.2: Deep Royal Blue
+  makeColor(116, 136, 234), // 0.2 - 0.3: Soft Lavender Blue
+  makeColor(255, 192, 148), // 0.3 - 0.4: Warm Golden Peach (Sunset)
+  makeColor(136, 162, 247), // 0.4 - 0.5: Periwinkle Blue
+  makeColor(136, 162, 247), // 0.5 - 0.6: Periwinkle Blue
+  makeColor(253, 175, 120), // 0.6 - 0.7: Vibrant Sunset Orange
+  makeColor(253, 175, 120), // 0.7 - 0.8: Vibrant Sunset Orange
+  makeColor(90, 108, 216),  // 0.8 - 0.9: Twilight Indigo
+  makeColor(90, 108, 216),  // 0.9 - 1.0: Twilight Indigo
 ];
 
 interface AtmosCanvasProps {
@@ -260,10 +263,15 @@ export const AtmosCanvas = ({
     const hemiLight = new THREE.HemisphereLight(
       0xffffff,
       ATMOS_LIGHT_GROUND_COLORS[0].clone(),
-      1.2,
+      2.8,
     );
-    hemiLight.position.set(-10, 10, 0);
+    hemiLight.position.set(-6, 12, 8);
     scene.add(hemiLight);
+
+    // Front-facing key/fill light to ensure cloud lobes and aircraft facing the camera glow luminous white
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    fillLight.position.set(0, 10, 15);
+    scene.add(fillLight);
 
     // Sky Dome Mesh (Authentic Atmos radius 50)
     const skyGeo = new THREE.SphereGeometry(50, 32, 16);
@@ -346,10 +354,14 @@ export const AtmosCanvas = ({
     const aboutLight = new THREE.HemisphereLight(
       0xffffff,
       ATMOS_LIGHT_GROUND_COLORS[0].clone(),
-      1.2,
+      2.8,
     );
-    aboutLight.position.set(-10, 10, 0);
+    aboutLight.position.set(-6, 12, 8);
     aboutScene.add(aboutLight);
+
+    const aboutFillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    aboutFillLight.position.set(0, 10, 15);
+    aboutScene.add(aboutFillLight);
 
     const aboutPlaneGroup = new THREE.Group();
     aboutScene.add(aboutPlaneGroup);
@@ -732,7 +744,7 @@ export const AtmosCanvas = ({
               : new THREE.SphereGeometry(1.5, 12, 12);
         const mat = new THREE.MeshLambertMaterial({
           color: 0xffffff,
-          side: THREE.DoubleSide,
+          side: THREE.FrontSide,
           transparent: true,
           opacity: 0.0,
         });
