@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { ATMOS_FACTS } from "../data/atmosData";
 import { RollTitle } from "./RollTitle";
 import gsap from "gsap";
@@ -22,6 +28,7 @@ export const AboutModal = ({
 
   const aboutContainerRef = useRef<HTMLDivElement>(null);
   const aboutContentRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
   // Exact Leeroy Virtual Scroller Physics:
   // range: [0, 2500], lerpAmount: 0.1
@@ -39,6 +46,16 @@ export const AboutModal = ({
       closeBtn.style.top = `calc(${r}px - 15px)`;
     }
   };
+
+  // Reposition close button on resize
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleResize = () => {
+      positionCloseBtn();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isOpen]);
 
   // External seek from the universal scrollbar track
   useEffect(() => {
@@ -79,7 +96,8 @@ export const AboutModal = ({
     }
   }, [isOpen, isClosing, onScrollRatioChange]);
 
-  useEffect(() => {
+  // Synchronous mount & animation setup before initial paint
+  useLayoutEffect(() => {
     if (isOpen) {
       setMounted(true);
       setIsClosing(false);
@@ -96,53 +114,65 @@ export const AboutModal = ({
       // Start virtual scroll RAF loop
       rafIdRef.current = requestAnimationFrame(updateScroll);
 
-      requestAnimationFrame(() => {
-        positionCloseBtn();
+      positionCloseBtn();
 
-        // Exact Leeroy domIntro() GSAP Animation:
+      // Cancel any ongoing timelines/tweens
+      if (timelineRef.current) {
+        timelineRef.current.kill();
+      }
+      if (aboutContainerRef.current) {
+        gsap.killTweensOf(aboutContainerRef.current);
         gsap.set(aboutContainerRef.current, { opacity: 1 });
-        gsap.set(
-          [
-            ".about__p",
-            ".about__h2-ref",
-            ".reference",
-            ".about__h2-leeroy",
-            ".about__p-leeroy",
-            ".about__p-music",
-          ],
-          {
-            opacity: 0,
-            y: 20,
-          },
-        );
-        gsap.set(".source-link", {
-          opacity: 0,
-          x: 20,
-        });
+      }
 
-        // Exact Leeroy domIntro(): starts at delay: 1.0s (halfway through the 2.0s background wave transition)
-        const tl = gsap.timeline({
-          delay: 1.0,
-          defaults: {
-            ease: "power2.out",
-            duration: 1.0,
-            y: 0,
-            x: 0,
-            opacity: 1,
-          },
-        });
-        tl.to(".about__p", {}, "<+=.2");
-        tl.to(".about__h2-ref", {}, "<+=.2");
-        tl.to(".reference", { stagger: 0.05, duration: 1.0 }, "<+=.2");
-        tl.to(".source-link", { stagger: 0.05, duration: 1.0 }, "<+=.5");
-        tl.to(".about__h2-leeroy", {}, ">-=1");
-        tl.to(".about__p-leeroy", {}, "<+=.2");
-        tl.to(".about__p-music", {}, "<+=.2");
+      // Exact Leeroy domIntro() GSAP Animation:
+      // Synchronously set elements to invisible and shifted BEFORE first browser paint
+      gsap.set(
+        [
+          ".about__p",
+          ".about__h2-ref",
+          ".reference",
+          ".about__h2-leeroy",
+          ".about__p-leeroy",
+          ".about__p-music",
+        ],
+        {
+          opacity: 0,
+          y: 20,
+        },
+      );
+      gsap.set(".source-link", {
+        opacity: 0,
+        x: 20,
       });
+
+      // Exact Leeroy domIntro(): starts at delay: 1.0s (halfway through the 2.0s background wave transition)
+      const tl = gsap.timeline({
+        delay: 1.0,
+        defaults: {
+          ease: "power2.out",
+          duration: 1.0,
+          y: 0,
+          x: 0,
+          opacity: 1,
+        },
+      });
+      tl.to(".about__p", {}, "<+=.2");
+      tl.to(".about__h2-ref", {}, "<+=.2");
+      tl.to(".reference", { stagger: 0.05, duration: 1.0 }, "<+=.2");
+      tl.to(".source-link", { stagger: 0.05, duration: 1.0 }, "<+=.5");
+      tl.to(".about__h2-leeroy", {}, ">-=1");
+      tl.to(".about__p-leeroy", {}, "<+=.2");
+      tl.to(".about__p-music", {}, "<+=.2");
+      timelineRef.current = tl;
     } else if (mounted) {
       setIsClosing(true);
+      if (timelineRef.current) {
+        timelineRef.current.kill();
+      }
       // Fade out About DOM cleanly
       if (aboutContainerRef.current) {
+        gsap.killTweensOf(aboutContainerRef.current);
         gsap.to(aboutContainerRef.current, {
           opacity: 0,
           duration: 0.6,
@@ -167,6 +197,7 @@ export const AboutModal = ({
     }
 
     return () => {
+      if (timelineRef.current) timelineRef.current.kill();
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, [isOpen, updateScroll]);

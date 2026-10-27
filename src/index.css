@@ -416,6 +416,7 @@ html {
   top: 50%;
   left: 0;
   transform-origin: 0 50%;
+  transform: scaleX(0);
 }
 
 .close-btn div:last-child {
@@ -424,6 +425,7 @@ html {
   top: 0;
   left: 50%;
   transform-origin: 50% 100%;
+  transform: scaleY(0);
 }
 
 @keyframes closeInX {
@@ -589,9 +591,6 @@ html {
   display: block;
   user-select: text;
   background-color: transparent;
-  transition:
-    opacity 0.75s ease-in-out,
-    background-color 1s linear;
   z-index: 45;
 }
 
@@ -602,12 +601,29 @@ html {
 .about--in {
   pointer-events: auto;
   opacity: 1;
+  transition: background-color 1s linear;
 }
 
 .about--out {
   opacity: 0 !important;
   pointer-events: none;
-  transition: opacity 0.8s ease-in-out;
+}
+
+/* Ensure all about menu content elements are hidden by default in CSS
+   so they never flash on initial DOM mount before GSAP intro animation runs */
+.about .about__p,
+.about .about__h2-ref,
+.about .reference,
+.about .about__h2-leeroy,
+.about .about__p-leeroy,
+.about .about__p-music {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.about .source-link {
+  opacity: 0;
+  transform: translateX(20px);
 }
 
 @media (max-width: 1050px) {
