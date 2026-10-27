@@ -273,13 +273,13 @@ export const AtmosCanvas = ({
     const hemiLight = new THREE.HemisphereLight(
       0xffffff,
       ATMOS_LIGHT_GROUND_COLORS[0].clone(),
-      2.8,
+      1.8,
     );
-    hemiLight.position.set(-6, 12, 8);
+    hemiLight.position.set(-10, 10, 0);
     scene.add(hemiLight);
 
-    // Front-facing key/fill light to ensure cloud lobes and aircraft facing the camera glow luminous white
-    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    // Subtle front-facing fill light so clouds stay visible without washing out the blue airplane underbelly
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
     fillLight.position.set(0, 10, 15);
     scene.add(fillLight);
 
@@ -363,17 +363,26 @@ export const AtmosCanvas = ({
     aboutSkyMesh.rotation.x = -0.1 * Math.PI;
     aboutScene.add(aboutSkyMesh);
 
+    // Dedicated About Lighting:
+    // 1. Hemisphere light: pure white sky light from above (-6, 14, 0) + intense royal blue ground bounce
     const aboutLight = new THREE.HemisphereLight(
       0xffffff,
-      0x0a1ac8,
-      2.6,
+      0x0a30f8,
+      2.2,
     );
-    aboutLight.position.set(-6, 12, 8);
+    aboutLight.position.set(-6, 14, 0);
     aboutScene.add(aboutLight);
 
-    const aboutFillLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    aboutFillLight.position.set(0, 10, 15);
-    aboutScene.add(aboutFillLight);
+    // 2. White key light from top-left to illuminate upper wings & fuselage spine with crisp white
+    const aboutTopLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    aboutTopLight.position.set(-6, 12, 6);
+    aboutScene.add(aboutTopLight);
+
+    // 3. Electric blue fill light illuminating the camera-visible underbelly from below-front
+    // Saturated azure-blue (0x2055ff) gives the underbelly its glowing, vivid blue tone
+    const aboutBlueFill = new THREE.DirectionalLight(0x2055ff, 1.4);
+    aboutBlueFill.position.set(1, -4, 12);
+    aboutScene.add(aboutBlueFill);
 
     const aboutPlaneGroup = new THREE.Group();
     aboutScene.add(aboutPlaneGroup);
