@@ -365,14 +365,14 @@ export const AtmosCanvas = ({
 
     const aboutLight = new THREE.HemisphereLight(
       0xffffff,
-      0x0000ff,
-      2.8,
+      0x0a1ac8,
+      2.6,
     );
-    aboutLight.position.set(-10, 10, 0);
+    aboutLight.position.set(-6, 12, 8);
     aboutScene.add(aboutLight);
 
-    const aboutFillLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    aboutFillLight.position.set(-5, 10, 10);
+    const aboutFillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    aboutFillLight.position.set(0, 10, 15);
     aboutScene.add(aboutFillLight);
 
     const aboutPlaneGroup = new THREE.Group();

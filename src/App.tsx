@@ -58,12 +58,21 @@ export const App = () => {
     });
   };
 
+  const [aboutScrollRatio, setAboutScrollRatio] = useState(0);
+  const [aboutSeekRatio, setAboutSeekRatio] = useState<number | null>(null);
+
+  const handleSeekAbout = (ratio: number) => {
+    setAboutSeekRatio(ratio);
+  };
+
   const handleResetFlight = () => {
     setIsExploring(false);
     setIsAboutOpen(false);
     setIsEnded(false);
     setIsOutroVisible(false);
     setSeekRatio(0);
+    setAboutScrollRatio(0);
+    setAboutSeekRatio(0);
   };
 
   return (
@@ -81,7 +90,7 @@ export const App = () => {
 
       {/* Authentic Atmos Bottom Canyon Atmosphere Glow */}
       <div
-        className={`flight-glow pointer-events-none transition-opacity duration-1000 ${isExploring && !isEnded ? "opacity-100" : "opacity-0"}`}
+        className={`flight-glow pointer-events-none transition-opacity duration-1000 ${isExploring && !isEnded && !isAboutOpen ? "opacity-100" : "opacity-0"}`}
       />
 
       {/* Intro Landing Screen & Title */}
@@ -91,22 +100,29 @@ export const App = () => {
         onReset={handleResetFlight}
       />
 
-      {/* Top Controls, Hint & 2px Scrollbar */}
+      {/* Top Controls, Hint & Universal 2px Scrollbar */}
       <FlightHUD
         progress={progress}
         completion={completion}
+        aboutScrollRatio={aboutScrollRatio}
         isExploring={isExploring}
         isAboutOpen={isAboutOpen}
         isEnded={isEnded}
         onOpenAbout={() => setIsAboutOpen(true)}
         onSeek={handleSeek}
+        onSeekAbout={handleSeekAbout}
       />
 
       {/* Authentic Outro Ending Screen */}
       <OutroScreen isVisible={isOutroVisible} onRestart={handleRestart} />
 
       {/* About & Aviation References Modal */}
-      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
+        seekRatio={aboutSeekRatio}
+        onScrollRatioChange={setAboutScrollRatio}
+      />
     </div>
   );
 };

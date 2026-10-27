@@ -5,21 +5,25 @@ import { RollTitle } from "./RollTitle";
 interface FlightHUDProps {
   progress: number;
   completion: number;
+  aboutScrollRatio?: number;
   isExploring: boolean;
   isAboutOpen: boolean;
   isEnded: boolean;
   onOpenAbout: () => void;
   onSeek?: (ratio: number) => void;
+  onSeekAbout?: (ratio: number) => void;
 }
 
 export const FlightHUD = ({
   progress,
   completion,
+  aboutScrollRatio = 0,
   isExploring,
   isAboutOpen,
   isEnded,
   onOpenAbout,
   onSeek,
+  onSeekAbout,
 }: FlightHUDProps) => {
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -71,21 +75,26 @@ export const FlightHUD = ({
     }
   }, [isExploring, isAboutOpen]);
 
-  const showScrollbar = isExploring && !isEnded && !isAboutOpen;
+  const showScrollbar = (isExploring || isAboutOpen) && !isEnded;
+  const currentRatio = isAboutOpen ? aboutScrollRatio : completion;
   const showHint = isExploring && progress < 0.02 && !isEnded && !isAboutOpen;
 
   // Handle clicking or dragging along the scrollbar track
   const handleSeekFromEvent = useCallback(
     (clientY: number) => {
-      if (!scrollbarRef.current || !onSeek) return;
+      if (!scrollbarRef.current) return;
       const rect = scrollbarRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
         Math.min(1, (clientY - rect.top) / rect.height),
       );
-      onSeek(ratio);
+      if (isAboutOpen && onSeekAbout) {
+        onSeekAbout(ratio);
+      } else if (onSeek) {
+        onSeek(ratio);
+      }
     },
-    [onSeek],
+    [isAboutOpen, onSeek, onSeekAbout],
   );
 
   const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -131,7 +140,7 @@ export const FlightHUD = ({
         Scroll to begin the journey
       </div>
 
-      {/* Authentic Atmos 2px vertical right scrollbar */}
+      {/* Universal Atmos 2px vertical right scrollbar (shared by flight and about menu) */}
       <div
         ref={scrollbarRef}
         onClick={handleTrackClick}
@@ -141,7 +150,7 @@ export const FlightHUD = ({
           onMouseDown={handleMouseDown}
           className="vsh-scrollbar__handle-0"
           style={{
-            transform: `translate3d(0, ${Math.min(900, Math.max(0, completion * 900))}%, 0)`,
+            transform: `translate3d(0, ${Math.min(900, Math.max(0, currentRatio * 900))}%, 0)`,
           }}
         />
       </div>

@@ -4,12 +4,14 @@ import gsap from "gsap";
 interface RollTitleProps {
   text: string;
   className?: string;
+  isHovered?: boolean;
   onClick?: () => void;
 }
 
 export const RollTitle = ({
   text,
   className = "",
+  isHovered,
   onClick,
 }: RollTitleProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,7 +24,7 @@ export const RollTitle = ({
     }
   }, []);
 
-  const handleMouseEnter = () => {
+  const rollIn = () => {
     if (!el1Ref.current || !el2Ref.current) return;
     gsap.to(el1Ref.current, {
       opacity: 0,
@@ -42,7 +44,7 @@ export const RollTitle = ({
     });
   };
 
-  const handleMouseLeave = () => {
+  const rollOut = () => {
     if (!el1Ref.current || !el2Ref.current) return;
     gsap.to(el1Ref.current, {
       opacity: 1,
@@ -62,12 +64,22 @@ export const RollTitle = ({
     });
   };
 
+  useEffect(() => {
+    if (isHovered !== undefined) {
+      if (isHovered) {
+        rollIn();
+      } else {
+        rollOut();
+      }
+    }
+  }, [isHovered]);
+
   return (
     <div
       ref={containerRef}
       className={`roll-title ${className}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={isHovered === undefined ? rollIn : undefined}
+      onMouseLeave={isHovered === undefined ? rollOut : undefined}
       onClick={onClick}
     >
       <div ref={el1Ref}>{text}</div>

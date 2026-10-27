@@ -253,7 +253,7 @@ html {
   pointer-events: none;
   opacity: 0;
   transition: 0.75s opacity ease-in-out;
-  z-index: 50;
+  z-index: 60;
   background: none;
   border: none;
   padding: 0;
@@ -342,9 +342,15 @@ html {
   opacity: 0;
   width: 31px;
   height: 31px;
-  transition: 0.75s opacity linear;
+  transition:
+    opacity 0.75s linear,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform: rotate(45deg);
   z-index: 60;
+}
+
+.close-btn--in:hover {
+  transform: rotate(135deg) scale(1.12);
 }
 
 @media (max-width: 1200px) {
@@ -469,7 +475,7 @@ html {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.8s linear;
-  z-index: 40;
+  z-index: 60;
 }
 
 @media (max-width: 1200px) {
@@ -518,25 +524,25 @@ html {
 }
 
 /* -------------------------------------------------------------
- * AUTHENTIC 2PX VERTICAL SCROLLBAR (VSH-SCROLLBAR-0)
+ * AUTHENTIC 2PX UNIVERSAL VERTICAL SCROLLBAR (VSH-SCROLLBAR-0)
  * ------------------------------------------------------------- */
 .vsh-scrollbar-0 {
   position: fixed;
   top: 10px;
-  right: 15px;
-  width: 2px;
-  height: calc(100vh - 20px);
-  background-color: rgba(255, 255, 255, 0.2);
+  right: 10px;
+  width: 2px !important;
+  height: calc(100vh - 20px) !important;
+  background-color: rgba(255, 255, 255, 0.23) !important;
   opacity: 0;
   pointer-events: none;
   transition: opacity 1s linear;
-  z-index: 35;
+  z-index: 60;
   cursor: pointer;
 }
 
 @media (max-width: 640px) {
   .vsh-scrollbar-0 {
-    right: 8px;
+    right: 5px !important;
   }
 }
 
@@ -552,6 +558,7 @@ html {
   width: 10px;
   height: 10%;
   cursor: grab;
+  transition: transform 0.1s ease-out;
 }
 
 .vsh-scrollbar__handle-0:after {
@@ -579,7 +586,7 @@ html {
   pointer-events: none;
   opacity: 0;
   color: #fff;
-  display: flex;
+  display: block;
   user-select: text;
   background-color: transparent;
   transition:
@@ -603,46 +610,6 @@ html {
   transition: opacity 0.8s ease-in-out;
 }
 
-.about .about__content > * {
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.about--in .about__content > * {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.about--in .about__content > *:nth-child(1) {
-  transition-delay: 0.3s;
-}
-.about--in .about__content > *:nth-child(2) {
-  transition-delay: 0.45s;
-}
-.about--in .about__content > *:nth-child(3) {
-  transition-delay: 0.6s;
-}
-.about--in .about__content > *:nth-child(4) {
-  transition-delay: 0.75s;
-}
-.about--in .about__content > *:nth-child(5) {
-  transition-delay: 0.9s;
-}
-.about--in .about__content > *:nth-child(6) {
-  transition-delay: 1.05s;
-}
-
-.about--out .about__content > * {
-  opacity: 0;
-  transform: translateY(-15px);
-  transition:
-    opacity 0.5s ease-in,
-    transform 0.5s ease-in;
-}
-
 @media (max-width: 1050px) {
   .about--in {
     background-color: rgba(10, 8, 191, 0.2);
@@ -653,27 +620,27 @@ html {
   left: 50%;
   width: 50%;
   margin-left: auto;
-  padding: 250px 15% 250px 0;
+  padding: 250px 15% 0 0;
   box-sizing: border-box;
 }
 
 @media (max-width: 1050px) {
   .about__content {
     width: 55%;
-    padding: 220px 10% 220px 0;
+    padding: 220px 10% 0 0;
   }
 }
 
 @media (max-width: 1000px) {
   .about__content {
     width: 100%;
-    padding: 200px 15% 200px 15%;
+    padding: 200px 15% 0 15%;
   }
 }
 
 @media (max-width: 600px) {
   .about__content {
-    padding: 200px 10% 200px 10%;
+    padding: 200px 10% 0 10%;
   }
 }
 
@@ -712,11 +679,22 @@ html {
   display: block;
   text-decoration: underline;
   color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.about p a:hover {
+  opacity: 0.75;
 }
 
 .about a {
   color: #fff;
+  cursor: pointer;
   transition: opacity 0.2s ease;
+}
+
+.about a:hover {
+  opacity: 0.75;
 }
 
 .about__p-music {
@@ -730,14 +708,26 @@ html {
 }
 
 .reference {
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 30px 0;
   text-decoration: none;
   color: #fff;
-  transition: opacity 0.2s ease;
+  cursor: pointer;
+  transition:
+    opacity 0.25s ease,
+    border-bottom-color 0.25s ease;
+}
+
+.reference:hover {
+  opacity: 0.82;
+  border-bottom-color: rgba(255, 255, 255, 0.85);
+}
+
+.reference:hover .source-link__arrow {
+  transform: translate(3px, -3px);
 }
 
 @media (max-width: 1350px) {
@@ -768,6 +758,7 @@ html {
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: normal;
+  transition: color 0.2s ease;
 }
 
 @media (max-width: 720px) {
@@ -789,15 +780,15 @@ html {
 
 .source-link__arrow {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background-image: url("/icons/arrow-up-right.svg");
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   margin-left: 20px;
   flex-shrink: 0;
-  transition: transform 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* -------------------------------------------------------------
@@ -871,13 +862,13 @@ html {
   left: 50%;
   transform: translateX(-50%);
   width: 140vw;
-  height: 56vh;
+  height: 50vh;
   background: radial-gradient(
     ellipse at 50% 100%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(242, 247, 255, 0.7) 22%,
-    rgba(210, 230, 255, 0.35) 45%,
-    rgba(180, 210, 255, 0) 70%
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(220, 235, 255, 0.2) 30%,
+    rgba(180, 210, 255, 0.05) 55%,
+    rgba(180, 210, 255, 0) 75%
   );
   pointer-events: none;
   z-index: 2;
