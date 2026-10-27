@@ -24,17 +24,35 @@ const makeColor = (r: number, g: number, b: number) =>
     THREE.LinearSRGBColorSpace,
   );
 
+// 1:1 Parity with Leeroy Atmos flight lighting:
+// Authentic 10-stop colors in LinearSRGBColorSpace:
+// Deep royal blue -> lavender blue -> soft golden peach -> periwinkle -> soft golden apricot -> twilight indigo.
+// Soft pastel tones matching Leeroy's exact RGB stops, with NO neon red or hot pink.
+// The subtle warmth during flight transitions is purely a delicate cross-fade between blue and gentle pastel peach/apricot.
 const ATMOS_LIGHT_GROUND_COLORS = [
-  makeColor(8, 37, 198), // 0.0 - 0.1: Initial Deep Royal Blue
+  makeColor(8, 37, 198), // 0.0 - 0.1: Initial Deep Royal Blue (1:1 with About Us)
   makeColor(8, 37, 198), // 0.1 - 0.2: Deep Royal Blue
-  makeColor(116, 136, 234), // 0.2 - 0.3: Soft Lavender Blue
-  makeColor(255, 192, 148), // 0.3 - 0.4: Warm Golden Peach (Sunset)
+  makeColor(116, 136, 234), // 0.2 - 0.3: Soft Lavender / Periwinkle Blue
+  makeColor(255, 192, 148), // 0.3 - 0.4: Soft Warm Golden Peach (gentle cream-peach, never red/pink)
   makeColor(136, 162, 247), // 0.4 - 0.5: Periwinkle Blue
   makeColor(136, 162, 247), // 0.5 - 0.6: Periwinkle Blue
-  makeColor(253, 175, 120), // 0.6 - 0.7: Vibrant Sunset Orange
-  makeColor(253, 175, 120), // 0.7 - 0.8: Vibrant Sunset Orange
-  makeColor(90, 108, 216), // 0.8 - 0.9: Twilight Indigo
-  makeColor(90, 108, 216), // 0.9 - 1.0: Twilight Indigo
+  makeColor(253, 175, 120), // 0.6 - 0.7: Soft Warm Golden Apricot (gentle pastel apricot, never red/pink)
+  makeColor(253, 175, 120), // 0.7 - 0.8: Soft Warm Golden Apricot
+  makeColor(90, 108, 216), // 0.8 - 0.9: Twilight Indigo Blue
+  makeColor(90, 108, 216), // 0.9 - 1.0: Twilight Indigo Blue
+];
+
+const ATMOS_LIGHT_FILL_COLORS = [
+  makeColor(20, 60, 255), // 0.0 - 0.1: Electric Azure Blue (1:1 with About Us aboutBlueFill)
+  makeColor(20, 60, 255), // 0.1 - 0.2: Electric Azure Blue
+  makeColor(116, 136, 234), // 0.2 - 0.3: Soft Lavender Blue
+  makeColor(255, 205, 165), // 0.3 - 0.4: Soft Golden Peach Glow (gentle pastel, never red/pink)
+  makeColor(136, 162, 247), // 0.4 - 0.5: Periwinkle Blue
+  makeColor(136, 162, 247), // 0.5 - 0.6: Periwinkle Blue
+  makeColor(253, 190, 140), // 0.6 - 0.7: Soft Golden Apricot Glow (gentle pastel, never red/pink)
+  makeColor(253, 190, 140), // 0.7 - 0.8: Soft Golden Apricot Glow
+  makeColor(90, 115, 230), // 0.8 - 0.9: Twilight Indigo Blue
+  makeColor(90, 115, 230), // 0.9 - 1.0: Twilight Indigo Blue
 ];
 
 interface AtmosCanvasProps {
@@ -265,23 +283,53 @@ export const AtmosCanvas = ({
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // Lighting (1:1 Authentic Atmos Hemisphere Light)
-    // In Atmos, only ONE HemisphereLight illuminates the scene:
-    // Pure white sky light from above (-10, 10, 0) keeps cloud tops and upper wing surfaces clean & crisp.
-    // The ground bounce light dynamically transforms the underbelly and shadows of the 3D plane, clouds,
-    // and elephant to reflect the surrounding sky color (royal blue -> peach sunset -> orange dusk -> night).
+    // -------------------------------------------------------------
+    // DYNAMIC ATMOSPHERIC LIGHTING (1:1 ABOUT US MENU "WHITE + DEEP ELECTRIC ENV" PARITY)
+    // Saturated electric royal blue ground bounce (0x0a30f8) + azure fill (0x2055ff)
+    // with brilliant pure white key light, exactly matching About Us menu airplane!
+    // -------------------------------------------------------------
+    scene.add(camera);
+
+    // 1. Hemisphere Light (1:1 with About Us aboutLight):
+    // Pure white sky (0xffffff) + rich royal blue ground at intensity 2.0
     const hemiLight = new THREE.HemisphereLight(
       0xffffff,
       ATMOS_LIGHT_GROUND_COLORS[0].clone(),
-      1.8,
+      2.0,
     );
-    hemiLight.position.set(-10, 10, 0);
+    hemiLight.position.set(-6, 14, 0);
     scene.add(hemiLight);
 
-    // Subtle front-facing fill light so clouds stay visible without washing out the blue airplane underbelly
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
-    fillLight.position.set(0, 10, 15);
-    scene.add(fillLight);
+    // 2. Crisp White Key Light from top-left (1:1 with About Us aboutTopLight):
+    // Shines on upper wings, cockpit, and fuselage spine with gleaming pure white at intensity 1.0
+    const flightTopLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    flightTopLight.position.set(-6, 12, 4);
+    flightTopLight.target.position.set(0, 0, -6);
+    camera.add(flightTopLight);
+    camera.add(flightTopLight.target);
+
+    // 3. Dynamic Environment Fill Light (1:1 with About Us aboutBlueFill):
+    // Shines from bottom-front onto camera-visible underbelly at intensity 1.1
+    const flightEnvFill = new THREE.DirectionalLight(
+      ATMOS_LIGHT_FILL_COLORS[0].clone(),
+      1.1,
+    );
+    flightEnvFill.position.set(1, -4, 4);
+    flightEnvFill.target.position.set(0, 0, -6);
+    camera.add(flightEnvFill);
+    camera.add(flightEnvFill.target);
+
+    // 4. Rear / Tail Environment Fill Light:
+    // Shines directly forward onto the rear cone visible to camera at intensity 0.5
+    // eliminating any dark or muddy shadow on the engine cone!
+    const flightRearFill = new THREE.DirectionalLight(
+      ATMOS_LIGHT_FILL_COLORS[0].clone(),
+      0.5,
+    );
+    flightRearFill.position.set(0, -1, 4);
+    flightRearFill.target.position.set(0, 0, -6);
+    camera.add(flightRearFill);
+    camera.add(flightRearFill.target);
 
     // Sky Dome Mesh (Authentic Atmos radius 50)
     const skyGeo = new THREE.SphereGeometry(50, 32, 16);
@@ -973,12 +1021,12 @@ export const AtmosCanvas = ({
     const _planeInitPos = new THREE.Vector3();
     const _planeLookAtPos = new THREE.Vector3();
     const _dummyMat = new THREE.Matrix4();
-    const _dummyPos = new THREE.Vector3();
     const _lateralVec = new THREE.Vector3();
     const _unprojectDir = new THREE.Vector3();
     const _aboutOffset = new THREE.Vector3();
     const _aboutTargetPos = new THREE.Vector3();
     const _tempGroundColor = new THREE.Color();
+    const _tempFillColor = new THREE.Color();
 
     const clock = new THREE.Clock();
     let animId: number;
@@ -1216,7 +1264,14 @@ export const AtmosCanvas = ({
         ATMOS_LIGHT_GROUND_COLORS[nextIdx],
         stepFrac,
       );
+      _tempFillColor.lerpColors(
+        ATMOS_LIGHT_FILL_COLORS[curIdx],
+        ATMOS_LIGHT_FILL_COLORS[nextIdx],
+        stepFrac,
+      );
       hemiLight.groundColor.copy(_tempGroundColor);
+      flightEnvFill.color.copy(_tempFillColor);
+      flightRearFill.color.copy(_tempFillColor);
 
       // Clouds distance & intro fading
       const currentIntroAlpha = s.introCloudAlpha.value;
