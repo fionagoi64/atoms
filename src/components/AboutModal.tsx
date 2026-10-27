@@ -50,46 +50,43 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
       </div>
 
       {/* Slide & Fade About Content Panel (Placed strictly on the right half on desktop) */}
-      <div className={`about ${showIn ? "about--in" : isClosing ? "about--out" : ""}`}>
+      <div
+        className={`about ${showIn ? "about--in" : isClosing ? "about--out" : ""}`}
+      >
         <div className="about__content">
-          <p className="about__p mb-16">
+          <p className="about__p">
             Want to further your experience and learn more about the aviation
             industry? Check out these resources that Atmos is based upon.
           </p>
 
-          <h2 className="font-newyork mb-8">
-            References
-          </h2>
+          <h2 className="font-newyork">REFERENCES</h2>
 
-          <div className="reference-list mb-16">
+          <div className="references">
             {ATMOS_FACTS.map((fact, idx) => (
               <a
                 key={idx}
                 href={fact.source}
                 target="_blank"
                 rel="noreferrer"
-                className="reference group"
+                className="reference"
               >
-                <span className="reference__title">
-                  {fact.title}
-                </span>
-                <span className="reference__source-link">
-                  <RollTitle text="See the source ↗" />
-                </span>
+                <div className="reference__title">{fact.title}</div>
+                <div className="source-link">
+                  <RollTitle text="See the source" />
+                  <span className="source-link__arrow" aria-hidden="true" />
+                </div>
               </a>
             ))}
           </div>
 
-          <h2 className="font-newyork mt-16 mb-6">
-            Leeroy's Playground
-          </h2>
-          <p className="about__p mb-6">
+          <h2 className="font-newyork">LEEROY'S PLAYGROUND</h2>
+          <p className="about__p">
             This experiment is part of{" "}
             <a
               href="https://play.leeroy.ca/"
               target="_blank"
               rel="noreferrer"
-              className="underline hover:opacity-80 inline"
+              className="inline underline hover:opacity-80"
             >
               Leeroy's Playground
             </a>
@@ -99,19 +96,19 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
               href="https://leeroy.ca/en"
               target="_blank"
               rel="noreferrer"
-              className="underline ml-1 hover:opacity-80 inline"
+              className="inline ml-1 underline hover:opacity-80"
             >
               Web Agency
             </a>
           </p>
 
-          <p className="about__p-music pt-6">
+          <p className="about__p-music">
             Music by{" "}
             <a
               href="https://freemusicarchive.org/music/independent-music-licensing-collective-imlc/emotive-ambience-licensing-pack-ketsa"
               target="_blank"
               rel="noreferrer"
-              className="underline hover:opacity-80 inline"
+              className="inline underline hover:opacity-80"
             >
               Ketsa
             </a>
