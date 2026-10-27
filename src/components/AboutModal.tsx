@@ -15,6 +15,15 @@ export const AboutModal = ({ isOpen, onClose }: AboutModalProps) => {
     if (isOpen) {
       setMounted(true);
       setIsClosing(false);
+      requestAnimationFrame(() => {
+        const title = document.querySelector(".intro__title");
+        const closeBtn = document.querySelector(".close-btn") as HTMLElement | null;
+        if (title && closeBtn) {
+          const n = title.getBoundingClientRect();
+          const r = n.height / 2 + n.top;
+          closeBtn.style.top = `calc(${r}px - 15px)`;
+        }
+      });
     } else {
       setIsClosing(true);
       const timer = setTimeout(() => {

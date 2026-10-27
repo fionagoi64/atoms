@@ -26,7 +26,7 @@ export const FlightHUD = ({
 
   const [aboutBtnVisible, setAboutBtnVisible] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     if (isAboutOpen) {
       setAboutBtnVisible(false);
     } else if (isExploring) {
@@ -36,6 +36,40 @@ useEffect(() => {
       return () => clearTimeout(timer);
     }
   }, [isAboutOpen, isExploring]);
+
+  // Exact Leeroy header alignment: synchronizes sound-btn, about-btn, and close-btn to ATMOS title centerline
+  useEffect(() => {
+    const positionHeaderButtons = () => {
+      const title = document.querySelector(".intro__title");
+      const aboutBtn = document.querySelector(".about-btn") as HTMLElement | null;
+      const soundBtn = document.querySelector(".sound-btn") as HTMLElement | null;
+      const closeBtn = document.querySelector(".close-btn") as HTMLElement | null;
+      if (!title) return;
+      const n = title.getBoundingClientRect();
+      const r = n.height / 2 + n.top;
+      if (aboutBtn) aboutBtn.style.top = `calc(${r}px - 1rem)`;
+      if (soundBtn) soundBtn.style.top = `calc(${r}px - 1rem)`;
+      if (closeBtn) closeBtn.style.top = `calc(${r}px - 15px)`;
+    };
+
+    if (isExploring) {
+      positionHeaderButtons();
+      const t1 = setTimeout(positionHeaderButtons, 100);
+      const t2 = setTimeout(positionHeaderButtons, 500);
+      const t3 = setTimeout(positionHeaderButtons, 900);
+      const handleResize = () => {
+        positionHeaderButtons();
+        setTimeout(positionHeaderButtons, 100);
+      };
+      window.addEventListener("resize", handleResize);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        window.removeEventListener("resize", handleResize);
+      };
+    }
+  }, [isExploring, isAboutOpen]);
 
   const showScrollbar = isExploring && !isEnded && !isAboutOpen;
   const showHint = isExploring && progress < 0.02 && !isEnded && !isAboutOpen;
