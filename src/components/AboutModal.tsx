@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ATMOS_FACTS } from "../data/atmosData";
 import { RollTitle } from "./RollTitle";
 import gsap from "gsap";
@@ -21,6 +21,13 @@ export const AboutModal = ({
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const aboutContainerRef = useRef<HTMLDivElement>(null);
+  const aboutContentRef = useRef<HTMLDivElement>(null);
+
+  // Exact Leeroy Virtual Scroller Physics:
+  // range: [0, 2500], lerpAmount: 0.1
+  const targetYRef = useRef(0);
+  const currentYRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
 
   // Position the close button aligned to ATMOS title centerline
   const positionCloseBtn = () => {
@@ -33,39 +40,66 @@ export const AboutModal = ({
     }
   };
 
-  // External seek from the universal scrollbar
+  // External seek from the universal scrollbar track
   useEffect(() => {
-    if (
-      seekRatio !== null &&
-      seekRatio !== undefined &&
-      aboutContainerRef.current
-    ) {
-      const target = aboutContainerRef.current;
-      const maxScroll = target.scrollHeight - target.clientHeight;
-      if (maxScroll > 0) {
-        target.scrollTop = seekRatio * maxScroll;
-      }
+    if (seekRatio !== null && seekRatio !== undefined) {
+      targetYRef.current = seekRatio * 2500;
     }
   }, [seekRatio]);
+
+  // Main Virtual Scroll animation loop
+  const updateScroll = useCallback(() => {
+    // Exact Leeroy lerpAmount: 0.1 (weighted, viscous damping)
+    currentYRef.current += (targetYRef.current - currentYRef.current) * 0.1;
+    const completion = Math.max(0, Math.min(1, currentYRef.current / 2500));
+
+    // Translate .about__content element
+    if (aboutContentRef.current) {
+      const domHeight = aboutContentRef.current.offsetHeight;
+      const windowHeight = window.innerHeight;
+      const maxTranslate = Math.max(0, domHeight - windowHeight);
+      const translateY = -completion * maxTranslate;
+      aboutContentRef.current.style.transform = `translate3d(0, ${translateY}px, 0)`;
+    }
+
+    // Dynamic title opacity formula from Leeroy:
+    // opacity = Math.max(0, 1 - 10 * completion)
+    const title = document.querySelector(".intro__title") as HTMLElement | null;
+    if (title && !isClosing) {
+      title.style.opacity = String(Math.max(0, 1 - 10 * completion));
+    }
+
+    // Inform universal scrollbar of current thumb position
+    if (onScrollRatioChange) {
+      onScrollRatioChange(completion);
+    }
+
+    if (isOpen || Math.abs(targetYRef.current - currentYRef.current) > 0.05) {
+      rafIdRef.current = requestAnimationFrame(updateScroll);
+    }
+  }, [isOpen, isClosing, onScrollRatioChange]);
 
   useEffect(() => {
     if (isOpen) {
       setMounted(true);
       setIsClosing(false);
+      targetYRef.current = 0;
+      currentYRef.current = 0;
       if (onScrollRatioChange) {
         onScrollRatioChange(0);
       }
 
-      // Reset scroll position to top
-      if (aboutContainerRef.current) {
-        aboutContainerRef.current.scrollTop = 0;
+      if (aboutContentRef.current) {
+        aboutContentRef.current.style.transform = "translate3d(0, 0px, 0)";
       }
+
+      // Start virtual scroll RAF loop
+      rafIdRef.current = requestAnimationFrame(updateScroll);
 
       requestAnimationFrame(() => {
         positionCloseBtn();
 
         // Exact Leeroy domIntro() GSAP Animation:
-        // Set initial positions
         gsap.set(aboutContainerRef.current, { opacity: 1 });
         gsap.set(
           [
@@ -127,27 +161,65 @@ export const AboutModal = ({
       const timer = setTimeout(() => {
         setMounted(false);
         setIsClosing(false);
+        if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
 
-  // Handle scroll in About container:
-  // Dynamically fades out ATMOS title: opacity = Math.max(0, 1 - 10 * completion)
-  // And informs the single universal scrollbar
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const maxScroll = target.scrollHeight - target.clientHeight;
-    const comp = maxScroll > 0 ? target.scrollTop / maxScroll : 0;
-    if (onScrollRatioChange) {
-      onScrollRatioChange(comp);
-    }
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, [isOpen, updateScroll]);
 
-    const title = document.querySelector(".intro__title") as HTMLElement | null;
-    if (title && !isClosing) {
-      title.style.opacity = String(Math.max(0, 1 - 10 * comp));
-    }
-  };
+  // Intercept wheel events with Leeroy scroll delta
+  useEffect(() => {
+    if (!isOpen || isClosing) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) dy *= 20;
+      else if (e.deltaMode === 2) dy *= 100;
+
+      // Authentic Leeroy wheel delta sensitivity
+      targetYRef.current = Math.max(
+        0,
+        Math.min(2500, targetYRef.current + dy * 0.9),
+      );
+
+      if (!rafIdRef.current) {
+        rafIdRef.current = requestAnimationFrame(updateScroll);
+      }
+    };
+
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touchY = e.touches[0].clientY;
+      const dy = touchStartY - touchY;
+      touchStartY = touchY;
+      targetYRef.current = Math.max(
+        0,
+        Math.min(2500, targetYRef.current + dy * 2.5),
+      );
+      if (!rafIdRef.current) {
+        rafIdRef.current = requestAnimationFrame(updateScroll);
+      }
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [isOpen, isClosing, updateScroll]);
 
   const handleClose = () => {
     if (isClosing) return;
@@ -176,10 +248,9 @@ export const AboutModal = ({
       {/* Slide & Fade About Content Panel */}
       <div
         ref={aboutContainerRef}
-        onScroll={handleScroll}
         className={`about ${showIn ? "about--in" : isClosing ? "about--out" : ""}`}
       >
-        <div className="about__content">
+        <div ref={aboutContentRef} className="about__content">
           <p className="about__p">
             Want to further your experience and learn more about the aviation
             industry? Check out these resources that Atmos is based upon.
