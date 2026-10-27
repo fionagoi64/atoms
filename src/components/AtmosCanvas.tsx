@@ -315,24 +315,23 @@ export const AtmosCanvas = ({
       0.5,
     );
 
-    // Contrail / Smoke Trail (TubeGeometry)
+    // Contrail / Smoke Trail (TubeGeometry) - Exact initial project import (cdeb15a)
     const trailGeo = new THREE.TubeGeometry(
       flightCurve,
       Math.round(200 * curveSizeFactor),
-      0.025,
-      8,
+      0.022,
+      6,
       false,
     );
     const trailMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.0,
+      opacity: 0.55,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
     });
     const trailMesh = new THREE.Mesh(trailGeo, trailMat);
     trailMesh.position.y = -0.5;
-    trailMesh.renderOrder = 50;
     trailMesh.visible = false;
     scene.add(trailMesh);
 
@@ -463,6 +462,8 @@ export const AtmosCanvas = ({
       color: 0xffffff,
       transparent: true,
       opacity: 1,
+      depthWrite: true,
+      depthTest: true,
     });
 
     let planeMesh: THREE.Object3D | null = null;
@@ -790,10 +791,11 @@ export const AtmosCanvas = ({
           side: THREE.FrontSide,
           transparent: true,
           opacity: 0.0,
-          depthWrite: false,
+          depthWrite: true,
+          depthTest: true,
         });
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.renderOrder = 1;
+        mesh.renderOrder = 3;
         mesh.visible = false;
 
         const targetLookAt = new THREE.Vector3();
@@ -1070,7 +1072,7 @@ export const AtmosCanvas = ({
       flightCurve.getPointAt(lookAtLeadT, _planeLookAtPos);
 
       if (!s.hasEnded) {
-        // FLIGHT AIRPLANE: Strictly tracks flight curve without ever being displaced by About modal
+        // FLIGHT AIRPLANE: 1:1 Leeroy Atmos & Initial Import Placement
         const flightX = _planeInitPos.x + 0.1 * (-0.5 + Math.sin(0.5 * time));
         const flightY =
           _planeInitPos.y + 0.2 * Math.sin(time) + s.introPosition.y;
@@ -1158,14 +1160,14 @@ export const AtmosCanvas = ({
       }
       windMesh.instanceMatrix.needsUpdate = true;
 
-      // 3D Objects in flight scene
+      // 3D Objects in flight scene (keeps path ending fade-out animation intact)
       planeGroup.visible =
         s.isExploring && (!s.hasEnded || planeMat.opacity > 0.001);
       trailMesh.visible =
         s.isExploring && (!s.hasEnded || trailMat.opacity > 0.001);
       windMesh.visible = s.isExploring && !s.hasEnded;
       if (s.isExploring && !s.hasEnded) {
-        trailMat.opacity = THREE.MathUtils.lerp(trailMat.opacity, 0.5, 0.05);
+        trailMat.opacity = THREE.MathUtils.lerp(trailMat.opacity, 0.55, 0.05);
       }
 
       // Dynamic speed lines opacity:

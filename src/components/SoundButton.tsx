@@ -1,58 +1,113 @@
 import { useState, useRef, useEffect } from "react";
+import gsap from "gsap";
 
-export const SoundButton = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+interface SoundButtonProps {
+  isExploring: boolean;
+}
+
+export const SoundButton = ({ isExploring }: SoundButtonProps) => {
+  const [isPlaying, setIsPlaying] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const tweensRef = useRef<gsap.core.Tween[]>([]);
+
+  // 1:1 Authentic Leeroy Atmos GSAP Wave Animation:
+  // Each span animates from scaleY: 0.1 to 1.0 with staggered delay = index / 5,
+  // yoyo: true, repeat: -1, duration: 1.5, ease: "power1.inOut" creating the iconic smooth wave.
+  const startBtnAnimation = () => {
+    tweensRef.current.forEach((t) => t.kill());
+    tweensRef.current = [];
+    spansRef.current.forEach((span, t) => {
+      if (!span) return;
+      const tween = gsap.fromTo(
+        span,
+        { scaleY: 0.1 },
+        {
+          scaleY: 1,
+          delay: t / 5,
+          yoyo: true,
+          repeat: -1,
+          duration: 1.5,
+          ease: "power1.inOut",
+        },
+      );
+      tweensRef.current.push(tween);
+    });
+  };
+
+  // 1:1 Authentic Leeroy Stop Animation:
+  // Smoothly animates all 8 spans down to scaleY: 0.1
+  const stopBtnAnimation = () => {
+    tweensRef.current.forEach((t) => t.kill());
+    tweensRef.current = [];
+    spansRef.current.forEach((span) => {
+      if (!span) return;
+      const tween = gsap.to(span, {
+        scaleY: 0.1,
+        duration: 1,
+        ease: "power1.inOut",
+      });
+      tweensRef.current.push(tween);
+    });
+  };
 
   useEffect(() => {
     const audio = new Audio("/audio/bg_music.mp3");
     audio.loop = true;
-    audio.volume = 0.4;
+    audio.volume = 0.3;
     audioRef.current = audio;
+
+    const isMuted = localStorage.getItem("atmos-mute") === "true";
+    if (isMuted) {
+      setIsPlaying(false);
+    }
 
     return () => {
       audio.pause();
-      audioRef.current = null;
+      tweensRef.current.forEach((t) => t.kill());
     };
   }, []);
 
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isExploring && isPlaying) {
+      audioRef.current.play().catch(() => {});
+      startBtnAnimation();
+    } else if (!isPlaying) {
+      stopBtnAnimation();
+    }
+  }, [isExploring, isPlaying]);
+
   const toggleSound = () => {
     if (!audioRef.current) return;
-
     if (isPlaying) {
+      localStorage.setItem("atmos-mute", "true");
       audioRef.current.pause();
+      stopBtnAnimation();
       setIsPlaying(false);
     } else {
-      audioRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((e) => {
-          console.warn("Audio play error:", e);
-        });
+      localStorage.setItem("atmos-mute", "false");
+      audioRef.current.play().catch(() => {});
+      startBtnAnimation();
+      setIsPlaying(true);
     }
   };
 
   return (
-    <button
+    <div
       onClick={toggleSound}
+      className={`sound-btn ${isExploring ? "sound-btn--in" : ""} ${isPlaying ? "sound-btn--on" : ""}`}
       title={isPlaying ? "Mute audio" : "Play ambient audio"}
-      className="flex items-end gap-0.75 h-5 px-2 py-1 cursor-pointer transition-opacity hover:opacity-80 focus:outline-none"
       aria-label="Toggle Sound"
     >
-      {[6, 12, 18, 10, 16, 20, 14, 8, 12, 6].map((h, i) => (
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
         <span
           key={i}
-          className={`w-[1.5px] bg-white rounded-full transition-all duration-300 ${
-            isPlaying ? "sound-bar" : "opacity-40"
-          }`}
-          style={{
-            height: isPlaying ? `${h}px` : "4px",
-            animationDelay: `${i * 0.12}s`,
+          ref={(el) => {
+            spansRef.current[i] = el;
           }}
         />
       ))}
-    </button>
+    </div>
   );
 };

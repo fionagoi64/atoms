@@ -114,10 +114,8 @@ export const FlightHUD = ({
 
   return (
     <>
-      {/* Sound button on top-left */}
-      <div className={`sound-btn ${isExploring ? "sound-btn--in" : ""}`}>
-        <SoundButton />
-      </div>
+      {/* Sound button on top-left (8 spans with authentic GSAP wave animation) */}
+      <SoundButton isExploring={isExploring} />
 
       {/* About button on top-right with 3D flip text */}
       <button
