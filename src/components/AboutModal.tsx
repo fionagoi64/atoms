@@ -319,7 +319,8 @@ export const AboutModal = ({
               href="https://play.leeroy.ca/"
               target="_blank"
               rel="noreferrer"
-              className="inline underline hover:opacity-80"
+              style={{ display: "inline-block" }}
+              className="underline hover:opacity-80"
             >
               Leeroy's Playground
             </a>
@@ -329,7 +330,7 @@ export const AboutModal = ({
               href="https://leeroy.ca/en"
               target="_blank"
               rel="noreferrer"
-              className="inline ml-1 underline hover:opacity-80"
+              className="underline hover:opacity-80"
             >
               Web Agency
             </a>
@@ -346,12 +347,6 @@ export const AboutModal = ({
               Ketsa
             </a>
           </p>
-
-          {/* Generous bottom spacing matching Leeroy: allows comfortable scrolling past Ketsa with ~35vh empty breathing room */}
-          <div
-            className="about__bottom-spacer"
-            style={{ height: "35vh", pointerEvents: "none" }}
-          />
         </div>
       </div>
     </>

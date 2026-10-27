@@ -714,13 +714,13 @@ html {
   opacity: 0.75;
 }
 
-.about__p-music {
-  margin-top: 100px;
+.about .about__p-music {
+  margin-top: 80px;
   font-size: 2rem;
   color: #fff;
 }
 
-.about__p-music a {
+.about .about__p-music a {
   display: inline !important;
 }
 
