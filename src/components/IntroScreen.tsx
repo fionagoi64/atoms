@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { LottieButton } from "./LottieButton";
 import { cn } from "../utils/cn";
 
@@ -8,10 +8,7 @@ interface IntroScreenProps {
   onReset?: () => void;
 }
 
-export const IntroScreen = ({
-  isExploring,
-  onExplore,
-}: IntroScreenProps) => {
+export const IntroScreen = ({ isExploring, onExplore }: IntroScreenProps) => {
   const [hasEntered, setHasEntered] = useState(false);
 
   useEffect(() => {
@@ -51,10 +48,7 @@ export const IntroScreen = ({
 
       {/* Lottie Explore CTA */}
       <div
-        className={cn(
-          "intro-cta",
-          hasEntered && !isExploring && "is-visible",
-        )}
+        className={cn("intro-cta", hasEntered && !isExploring && "is-visible")}
       >
         <LottieButton
           animationPath="/lottie/cta_explore.json"

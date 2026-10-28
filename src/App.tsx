@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AtmosCanvas } from "./components/AtmosCanvas";
+import { Header } from "./components/Header";
 import { IntroScreen } from "./components/IntroScreen";
 import { FlightHUD } from "./components/FlightHUD";
 import { AboutModal } from "./components/AboutModal";
@@ -78,7 +79,6 @@ export const App = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden select-none">
-      {/* 3D WebGL Flight Canvas with Exact Atmos Physics & Slipstream */}
       <AtmosCanvas
         isExploring={isExploring}
         isAboutOpen={isAboutOpen}
@@ -89,7 +89,6 @@ export const App = () => {
         onEndReached={() => setIsOutroVisible(true)}
       />
 
-      {/* Authentic Atmos Bottom Canyon Atmosphere Glow */}
       <div
         className={cn(
           "flight-glow pointer-events-none transition-opacity duration-1000",
@@ -97,14 +96,19 @@ export const App = () => {
         )}
       />
 
-      {/* Intro Landing Screen & Title */}
       <IntroScreen
         isExploring={isExploring}
         onExplore={handleStartExplore}
         onReset={handleResetFlight}
       />
 
-      {/* Top Controls, Hint & Universal 2px Scrollbar */}
+      <Header
+        isExploring={isExploring}
+        isAboutOpen={isAboutOpen}
+        isEnded={isEnded}
+        onOpenAbout={() => setIsAboutOpen(true)}
+      />
+
       <FlightHUD
         progress={progress}
         completion={completion}
@@ -112,15 +116,12 @@ export const App = () => {
         isExploring={isExploring}
         isAboutOpen={isAboutOpen}
         isEnded={isEnded}
-        onOpenAbout={() => setIsAboutOpen(true)}
         onSeek={handleSeek}
         onSeekAbout={handleSeekAbout}
       />
 
-      {/* Authentic Outro Ending Screen */}
       <OutroScreen isVisible={isOutroVisible} onRestart={handleRestart} />
 
-      {/* About & Aviation References Modal */}
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}

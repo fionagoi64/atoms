@@ -1,8 +1,8 @@
-import * as THREE from 'three'
+import * as THREE from "three";
 
 /**
- * Authentic Atmos Sky Dome Shaders (1:1 Leeroy Atmos Parity)
- * 
+ * Authentic Atmos Sky Dome Shaders
+ *
  * Features:
  * - Classic Perlin 2D procedural noise with permutation table
  * - 8-stop progressive multi-mix vertical sky gradient
@@ -19,7 +19,7 @@ void main() {
   vPos = position;
   vUv = uv;
 }
-`
+`;
 
 export const SKY_FRAGMENT_SHADER = /* glsl */ `
 uniform float uTime;
@@ -115,15 +115,17 @@ void main() {
 
   gl_FragColor = vec4(color, 1.0);
 }
-`
+`;
 
 export interface SkyUniforms {
-  uTime: { value: number }
-  uGradientMixer: { value: number }
-  uYCompression: { value: number }
+  uTime: { value: number };
+  uGradientMixer: { value: number };
+  uYCompression: { value: number };
 }
 
-export function createSkyMaterial(initialYCompression = 0.05): THREE.ShaderMaterial {
+export function createSkyMaterial(
+  initialYCompression = 0.05,
+): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     vertexShader: SKY_VERTEX_SHADER,
     fragmentShader: SKY_FRAGMENT_SHADER,
@@ -132,7 +134,7 @@ export function createSkyMaterial(initialYCompression = 0.05): THREE.ShaderMater
     uniforms: {
       uTime: { value: 0 },
       uGradientMixer: { value: 0 },
-      uYCompression: { value: initialYCompression }
-    }
-  })
+      uYCompression: { value: initialYCompression },
+    },
+  });
 }

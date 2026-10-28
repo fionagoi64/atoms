@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import lottie, { AnimationItem } from "lottie-web";
 import { cn } from "../utils/cn";
 

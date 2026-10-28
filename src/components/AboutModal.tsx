@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
   useEffect,
   useLayoutEffect,
@@ -316,7 +316,9 @@ export const AboutModal = ({
             ))}
           </div>
 
-          <h2 className="about-heading-credits font-newyork">LEEROY'S PLAYGROUND</h2>
+          <h2 className="about-heading-credits font-newyork">
+            LEEROY'S PLAYGROUND
+          </h2>
           <p className="about-text-credits">
             This experiment is part of{" "}
             <a
