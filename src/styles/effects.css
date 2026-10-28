@@ -1,0 +1,21 @@
+/* -------------------------------------------------------------
+ * FLIGHT CANYON BOTTOM ATMOSPHERE GLOW
+ * ------------------------------------------------------------- */
+.flight-glow {
+  position: fixed;
+  bottom: -10vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140vw;
+  height: 50vh;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(220, 235, 255, 0.2) 30%,
+    rgba(180, 210, 255, 0.05) 55%,
+    rgba(180, 210, 255, 0) 75%
+  );
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+}

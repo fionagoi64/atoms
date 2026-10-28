@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from "react";
+import { cn } from "../utils/cn";
 import gsap from "gsap";
 
 interface SoundButtonProps {
   isExploring: boolean;
+  isVisible?: boolean;
 }
 
-export const SoundButton = ({ isExploring }: SoundButtonProps) => {
+export const SoundButton = ({
+  isExploring,
+  isVisible = false,
+}: SoundButtonProps) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
@@ -96,7 +101,7 @@ export const SoundButton = ({ isExploring }: SoundButtonProps) => {
   return (
     <div
       onClick={toggleSound}
-      className={`sound-btn ${isExploring ? "sound-btn--in" : ""} ${isPlaying ? "sound-btn--on" : ""}`}
+      className={cn("sound-btn", isVisible && "is-visible")}
       title={isPlaying ? "Mute audio" : "Play ambient audio"}
       aria-label="Toggle Sound"
     >

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { cn } from "../utils/cn";
 import gsap from "gsap";
 
 interface RollTitleProps {
@@ -77,7 +78,7 @@ export const RollTitle = ({
   return (
     <div
       ref={containerRef}
-      className={`roll-title ${className}`}
+      className={cn("roll-title", className)}
       onMouseEnter={isHovered === undefined ? rollIn : undefined}
       onMouseLeave={isHovered === undefined ? rollOut : undefined}
       onClick={onClick}

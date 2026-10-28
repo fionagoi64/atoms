@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { LottieButton } from "./LottieButton";
+import { cn } from "../utils/cn";
 
 interface IntroScreenProps {
   isExploring: boolean;
   onExplore: () => void;
-  onReset: () => void;
+  onReset?: () => void;
 }
 
 export const IntroScreen = ({
   isExploring,
   onExplore,
-  onReset,
 }: IntroScreenProps) => {
   const [hasEntered, setHasEntered] = useState(false);
 
@@ -31,14 +31,14 @@ export const IntroScreen = ({
   ];
 
   return (
-    <div className={`intro ${isExploring ? "intro--out" : ""}`}>
+    <div className={cn("intro", isExploring && "is-leaving")}>
       {/* Title */}
-      <div className="intro__title" onClick={isExploring ? onReset : undefined}>
+      <div className="intro-title">
         <h1>
           {letters.map(({ char, delay }, idx) => (
             <span
               key={idx}
-              className={hasEntered ? "in" : ""}
+              className={cn(hasEntered && "is-visible")}
               style={{ transitionDelay: `${delay}ms` }}
             >
               {char}
@@ -46,14 +46,15 @@ export const IntroScreen = ({
           ))}
         </h1>
         {/* Rotating Circular Badge attached to S */}
-        <div
-          className={`intro__subtitle ${hasEntered ? "intro__subtitle--in" : ""}`}
-        />
+        <div className={cn("intro-badge", hasEntered && "is-visible")} />
       </div>
 
       {/* Lottie Explore CTA */}
       <div
-        className={`intro__cta ${hasEntered && !isExploring ? "intro__cta--in" : ""}`}
+        className={cn(
+          "intro-cta",
+          hasEntered && !isExploring && "is-visible",
+        )}
       >
         <LottieButton
           animationPath="/lottie/cta_explore.json"

@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { ATMOS_FACTS } from "../data/facts";
 import { RollTitle } from "./RollTitle";
+import { cn } from "../utils/cn";
 import gsap from "gsap";
 
 interface AboutModalProps {
@@ -38,7 +39,7 @@ export const AboutModal = ({
 
   // Position the close button aligned to ATMOS title centerline
   const positionCloseBtn = () => {
-    const title = document.querySelector(".intro__title");
+    const title = document.querySelector(".intro-title");
     const closeBtn = document.querySelector(".close-btn") as HTMLElement | null;
     if (title && closeBtn) {
       const n = title.getBoundingClientRect();
@@ -70,7 +71,7 @@ export const AboutModal = ({
     currentYRef.current += (targetYRef.current - currentYRef.current) * 0.1;
     const completion = Math.max(0, Math.min(1, currentYRef.current / 2500));
 
-    // Translate .about__content element
+    // Translate .about-content element
     if (aboutContentRef.current) {
       const domHeight = aboutContentRef.current.offsetHeight;
       const windowHeight = window.innerHeight;
@@ -81,7 +82,7 @@ export const AboutModal = ({
 
     // Dynamic title opacity formula from Leeroy:
     // opacity = Math.max(0, 1 - 10 * completion)
-    const title = document.querySelector(".intro__title") as HTMLElement | null;
+    const title = document.querySelector(".intro-title") as HTMLElement | null;
     if (title && !isClosing) {
       title.style.opacity = String(Math.max(0, 1 - 10 * completion));
     }
@@ -129,19 +130,19 @@ export const AboutModal = ({
       // Synchronously set elements to invisible and shifted BEFORE first browser paint
       gsap.set(
         [
-          ".about__p",
-          ".about__h2-ref",
-          ".reference",
-          ".about__h2-leeroy",
-          ".about__p-leeroy",
-          ".about__p-music",
+          ".about-intro",
+          ".about-heading-ref",
+          ".about-reference",
+          ".about-heading-credits",
+          ".about-text-credits",
+          ".about-text-music",
         ],
         {
           opacity: 0,
           y: 20,
         },
       );
-      gsap.set(".source-link", {
+      gsap.set(".about-source-link", {
         opacity: 0,
         x: 20,
       });
@@ -157,13 +158,13 @@ export const AboutModal = ({
           opacity: 1,
         },
       });
-      tl.to(".about__p", {}, "<+=.2");
-      tl.to(".about__h2-ref", {}, "<+=.2");
-      tl.to(".reference", { stagger: 0.05, duration: 1.0 }, "<+=.2");
-      tl.to(".source-link", { stagger: 0.05, duration: 1.0 }, "<+=.5");
-      tl.to(".about__h2-leeroy", {}, ">-=1");
-      tl.to(".about__p-leeroy", {}, "<+=.2");
-      tl.to(".about__p-music", {}, "<+=.2");
+      tl.to(".about-intro", {}, "<+=.2");
+      tl.to(".about-heading-ref", {}, "<+=.2");
+      tl.to(".about-reference", { stagger: 0.05, duration: 1.0 }, "<+=.2");
+      tl.to(".about-source-link", { stagger: 0.05, duration: 1.0 }, "<+=.5");
+      tl.to(".about-heading-credits", {}, ">-=1");
+      tl.to(".about-text-credits", {}, "<+=.2");
+      tl.to(".about-text-music", {}, "<+=.2");
       timelineRef.current = tl;
     } else if (mounted) {
       setIsClosing(true);
@@ -182,7 +183,7 @@ export const AboutModal = ({
 
       // Smoothly restore ATMOS title opacity
       const title = document.querySelector(
-        ".intro__title",
+        ".intro-title",
       ) as HTMLElement | null;
       if (title) {
         gsap.to(title, { opacity: 1, duration: 1, delay: 0.4, ease: "none" });
@@ -267,7 +268,10 @@ export const AboutModal = ({
       {/* Authentic Atmos 45deg Close Button with 2-line sequential draw animation and hover spin */}
       <div
         onClick={handleClose}
-        className={`close-btn ${showIn ? "close-btn--in" : isClosing ? "close-btn--out" : ""}`}
+        className={cn(
+          "close-btn",
+          showIn ? "is-visible" : isClosing && "is-hidden",
+        )}
         aria-label="Close About"
         role="button"
         tabIndex={0}
@@ -279,41 +283,41 @@ export const AboutModal = ({
       {/* Slide & Fade About Content Panel */}
       <div
         ref={aboutContainerRef}
-        className={`about ${showIn ? "about--in" : isClosing ? "about--out" : ""}`}
+        className={cn("about", showIn ? "is-open" : isClosing && "is-closing")}
       >
-        <div ref={aboutContentRef} className="about__content">
-          <p className="about__p">
+        <div ref={aboutContentRef} className="about-content">
+          <p className="about-intro">
             Want to further your experience and learn more about the aviation
             industry? Check out these resources that Atmos is based upon.
           </p>
 
-          <h2 className="about__h2-ref font-newyork">REFERENCES</h2>
+          <h2 className="about-heading-ref font-newyork">REFERENCES</h2>
 
-          <div className="references">
+          <div className="about-references">
             {ATMOS_FACTS.map((fact, idx) => (
               <a
                 key={idx}
                 href={fact.source}
                 target="_blank"
                 rel="noreferrer"
-                className="reference"
+                className="about-reference"
                 onMouseEnter={() => setHoveredIdx(idx)}
                 onMouseLeave={() => setHoveredIdx(null)}
               >
-                <div className="reference__title">{fact.title}</div>
-                <div className="source-link">
+                <div className="about-reference-title">{fact.title}</div>
+                <div className="about-source-link">
                   <RollTitle
                     text="See the source"
                     isHovered={hoveredIdx === idx}
                   />
-                  <span className="source-link__arrow" aria-hidden="true" />
+                  <span className="about-source-arrow" aria-hidden="true" />
                 </div>
               </a>
             ))}
           </div>
 
-          <h2 className="about__h2-leeroy font-newyork">LEEROY'S PLAYGROUND</h2>
-          <p className="about__p-leeroy">
+          <h2 className="about-heading-credits font-newyork">LEEROY'S PLAYGROUND</h2>
+          <p className="about-text-credits">
             This experiment is part of{" "}
             <a
               href="https://play.leeroy.ca/"
@@ -336,7 +340,7 @@ export const AboutModal = ({
             </a>
           </p>
 
-          <p className="about__p-music">
+          <p className="about-text-music">
             Music by{" "}
             <a
               href="https://freemusicarchive.org/music/independent-music-licensing-collective-imlc/emotive-ambience-licensing-pack-ketsa"

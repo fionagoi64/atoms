@@ -1,0 +1,337 @@
+/* -------------------------------------------------------------
+ * HUD HINT
+ * ------------------------------------------------------------- */
+.hint {
+  position: fixed;
+  top: 32%;
+  left: 50%;
+  text-align: center;
+  color: #fff;
+  font-family: "DMSans", "DM Sans", sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  filter: blur(5px);
+  pointer-events: none;
+  transition:
+    opacity 1.5s ease-out,
+    filter 1.5s ease-out,
+    transform 1.5s ease-out;
+  z-index: 15;
+}
+
+.hint.is-visible {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translate(-50%, -50%);
+}
+
+.hint.is-hidden {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translate(-50%, -55%);
+}
+
+/* -------------------------------------------------------------
+ * TOP NAVIGATION BUTTONS (ABOUT, CLOSE, SOUND)
+ * ------------------------------------------------------------- */
+.about-btn {
+  position: fixed;
+  top: 40px;
+  right: 110px;
+  font-size: 2rem;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 50px;
+  font-family: "DMSans", "DM Sans", sans-serif;
+  pointer-events: none;
+  opacity: 0;
+  transition: 0.75s opacity ease-in-out;
+  z-index: 60;
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+}
+
+@media (max-width: 1200px) {
+  .about-btn {
+    right: 80px;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-btn {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 550px) {
+  .about-btn {
+    right: 14%;
+  }
+}
+
+@media (max-width: 400px) {
+  .about-btn {
+    right: 12%;
+  }
+}
+
+.about-btn.is-visible {
+  pointer-events: auto;
+  opacity: 1 !important;
+}
+
+@media (max-width: 550px) {
+  .about-btn.is-visible {
+    opacity: 0.75 !important;
+  }
+}
+
+/* -------------------------------------------------------------
+ * 45-DEG CLOSE BUTTON WITH SEQUENTIAL LINE ANIMATION
+ * ------------------------------------------------------------- */
+.close-btn {
+  position: fixed;
+  top: 40px;
+  right: 110px;
+  cursor: pointer;
+  pointer-events: none;
+  opacity: 0;
+  width: 31px;
+  height: 31px;
+  transition:
+    opacity 0.75s linear,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: rotate(45deg);
+  z-index: 60;
+}
+
+.close-btn.is-visible:hover {
+  transform: rotate(135deg) scale(1.12);
+}
+
+@media (max-width: 1200px) {
+  .close-btn {
+    right: 80px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .close-btn {
+    right: 6%;
+  }
+}
+
+@media (max-width: 550px) {
+  .close-btn {
+    right: 14%;
+  }
+}
+
+@media (max-width: 400px) {
+  .close-btn {
+    right: 12%;
+  }
+}
+
+.close-btn.is-visible {
+  pointer-events: auto;
+  opacity: 1 !important;
+}
+
+.close-btn.is-visible div:first-child {
+  animation: closeInX 0.75s ease-in-out 1 both;
+}
+
+.close-btn.is-visible div:last-child {
+  animation: closeInY 0.75s ease-in-out 1 both;
+  animation-delay: 0.5s;
+}
+
+.close-btn.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.close-btn.is-hidden div:first-child {
+  animation: closeOutX 0.5s ease-in-out 1 both;
+}
+
+.close-btn.is-hidden div:last-child {
+  animation: closeOutY 0.5s ease-in-out 1 both;
+  animation-delay: 0.25s;
+}
+
+.close-btn div {
+  position: absolute;
+  background: #fff;
+}
+
+.close-btn div:first-child {
+  width: 100%;
+  height: 1.5px;
+  top: 50%;
+  left: 0;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+.close-btn div:last-child {
+  width: 1.5px;
+  height: 100%;
+  top: 0;
+  left: 50%;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+}
+
+@keyframes closeInX {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes closeInY {
+  0% {
+    transform: scaleY(0);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes closeOutX {
+  0% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes closeOutY {
+  0% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+/* -------------------------------------------------------------
+ * SOUND BUTTON & EQUALIZER WAVE
+ * ------------------------------------------------------------- */
+.sound-btn {
+  width: 58px;
+  height: 20px;
+  position: fixed;
+  top: 40px;
+  left: 110px;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s linear;
+  z-index: 60;
+}
+
+@media (max-width: 1200px) {
+  .sound-btn {
+    left: 80px;
+  }
+}
+
+@media (max-width: 550px) {
+  .sound-btn {
+    left: 14%;
+    width: 44px;
+    height: 10px;
+    transform: translateY(5px);
+  }
+}
+
+@media (max-width: 400px) {
+  .sound-btn {
+    left: 12%;
+  }
+}
+
+.sound-btn.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 550px) {
+  .sound-btn.is-visible {
+    opacity: 0.75 !important;
+  }
+}
+
+.sound-btn.is-visible:hover {
+  opacity: 1;
+}
+
+.sound-btn span {
+  width: 1px;
+  height: 100%;
+  background: #fff;
+  transform: scaleY(0.1);
+  transition: 1s background linear;
+  transform-origin: bottom;
+}
+
+/* -------------------------------------------------------------
+ * UNIVERSAL 2PX VERTICAL SCROLLBAR
+ * ------------------------------------------------------------- */
+.scrollbar {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 2px !important;
+  height: calc(100vh - 20px) !important;
+  background-color: rgba(255, 255, 255, 0.23) !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s linear;
+  z-index: 60;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .scrollbar {
+    right: 5px !important;
+  }
+}
+
+.scrollbar.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.scrollbar-handle {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 10px;
+  height: 10%;
+  cursor: grab;
+  transition: transform 0.1s ease-out;
+}
+
+.scrollbar-handle:after {
+  content: "";
+  position: absolute;
+  background: #ffffff;
+  width: 2px;
+  height: 100%;
+  top: 0;
+  left: 4px;
+}

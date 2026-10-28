@@ -1,0 +1,34 @@
+/* -------------------------------------------------------------
+ * 3D CYLINDRICAL FLIP COMPONENT (ROLL-TITLE)
+ * ------------------------------------------------------------- */
+.roll-title {
+  position: relative;
+  perspective: 500px;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.roll-title div:first-child {
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
+.roll-title div:last-child {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
+.roll-title div:last-child:after {
+  content: attr(data-content);
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+}

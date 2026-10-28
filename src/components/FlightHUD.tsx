@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from "react";
 import { SoundButton } from "./SoundButton";
 import { RollTitle } from "./RollTitle";
+import { cn } from "../utils/cn";
 
 interface FlightHUDProps {
   progress: number;
@@ -28,52 +29,73 @@ export const FlightHUD = ({
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
 
-  const [aboutBtnVisible, setAboutBtnVisible] = useState(true);
-
-  useEffect(() => {
-    if (isAboutOpen) {
-      setAboutBtnVisible(false);
-    } else if (isExploring) {
-      const timer = setTimeout(() => {
-        setAboutBtnVisible(true);
-      }, 1400);
-      return () => clearTimeout(timer);
-    }
-  }, [isAboutOpen, isExploring]);
+  const [headerButtonsVisible, setHeaderButtonsVisible] = useState(false);
+  const [aboutBtnVisible, setAboutBtnVisible] = useState(false);
 
   // Exact Leeroy header alignment: synchronizes sound-btn, about-btn, and close-btn to ATMOS title centerline
-  useEffect(() => {
-    const positionHeaderButtons = () => {
-      const title = document.querySelector(".intro__title");
-      const aboutBtn = document.querySelector(".about-btn") as HTMLElement | null;
-      const soundBtn = document.querySelector(".sound-btn") as HTMLElement | null;
-      const closeBtn = document.querySelector(".close-btn") as HTMLElement | null;
-      if (!title) return;
-      const n = title.getBoundingClientRect();
-      const r = n.height / 2 + n.top;
-      if (aboutBtn) aboutBtn.style.top = `calc(${r}px - 1rem)`;
-      if (soundBtn) soundBtn.style.top = `calc(${r}px - 1rem)`;
-      if (closeBtn) closeBtn.style.top = `calc(${r}px - 15px)`;
-    };
+  const positionHeaderButtons = useCallback(() => {
+    const title = document.querySelector(".intro-title");
+    const aboutBtn = document.querySelector(".about-btn") as HTMLElement | null;
+    const soundBtn = document.querySelector(".sound-btn") as HTMLElement | null;
+    const closeBtn = document.querySelector(".close-btn") as HTMLElement | null;
+    if (!title) return;
+    const n = title.getBoundingClientRect();
+    const r = n.height / 2 + n.top;
+    if (aboutBtn) aboutBtn.style.top = `calc(${r}px - 1rem)`;
+    if (soundBtn) soundBtn.style.top = `calc(${r}px - 1rem)`;
+    if (closeBtn) closeBtn.style.top = `calc(${r}px - 15px)`;
+  }, []);
 
-    if (isExploring) {
-      positionHeaderButtons();
-      const t1 = setTimeout(positionHeaderButtons, 100);
-      const t2 = setTimeout(positionHeaderButtons, 500);
-      const t3 = setTimeout(positionHeaderButtons, 900);
-      const handleResize = () => {
-        positionHeaderButtons();
-        setTimeout(positionHeaderButtons, 100);
-      };
-      window.addEventListener("resize", handleResize);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        window.removeEventListener("resize", handleResize);
-      };
+  // 1:1 Authentic Leeroy Atmos header button entrance:
+  // Buttons wait 1500ms until the ATMOS title has completely finished its transition
+  // and settled at the top. At 1500ms, they are measured & positioned at the exact centerline,
+  // and then fade in stationary directly at that position without jumping or sliding.
+  useEffect(() => {
+    if (!isExploring) {
+      setHeaderButtonsVisible(false);
+      setAboutBtnVisible(false);
+      const title = document.querySelector(".intro-title");
+      if (title) title.classList.remove("no-transition");
+      return;
     }
-  }, [isExploring, isAboutOpen]);
+
+    const timer = setTimeout(() => {
+      // 1. Position buttons directly at the settled title centerline
+      positionHeaderButtons();
+      // 2. Make them visible so they fade in smoothly from this settled position
+      setHeaderButtonsVisible(true);
+      setAboutBtnVisible(true);
+      // 3. Mark title as no-transition to prevent accidental transition on window resize
+      const title = document.querySelector(".intro-title");
+      if (title) title.classList.add("no-transition");
+    }, 1500);
+
+    const handleResize = () => {
+      setTimeout(positionHeaderButtons, 100);
+      setTimeout(positionHeaderButtons, 300);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isExploring, positionHeaderButtons]);
+
+  // Handle About button visibility during About modal open/close
+  useEffect(() => {
+    if (!headerButtonsVisible) return;
+    if (isAboutOpen) {
+      setAboutBtnVisible(false);
+    } else {
+      // Fade About button back in stationary when modal closes
+      const timer = setTimeout(() => {
+        positionHeaderButtons();
+        setAboutBtnVisible(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAboutOpen, headerButtonsVisible, positionHeaderButtons]);
 
   const showScrollbar = (isExploring || isAboutOpen) && !isEnded;
   const currentRatio = isAboutOpen ? aboutScrollRatio : completion;
@@ -124,19 +146,29 @@ export const FlightHUD = ({
   return (
     <>
       {/* Sound button on top-left (8 spans with authentic GSAP wave animation) */}
-      <SoundButton isExploring={isExploring} />
+      <SoundButton
+        isExploring={isExploring}
+        isVisible={headerButtonsVisible && !isEnded}
+      />
 
       {/* About button on top-right with 3D flip text */}
       <button
         onClick={onOpenAbout}
-        className={`about-btn ${isExploring && !isAboutOpen && aboutBtnVisible ? "about-btn--in" : ""}`}
+        className={cn(
+          "about-btn",
+          headerButtonsVisible &&
+            !isAboutOpen &&
+            aboutBtnVisible &&
+            !isEnded &&
+            "is-visible",
+        )}
         aria-label="Open About"
       >
         <RollTitle text="About" />
       </button>
 
       {/* Center hint: "Scroll to begin the journey" */}
-      <div className={`hint ${showHint ? "hint--in" : "hint--out"}`}>
+      <div className={cn("hint", showHint ? "is-visible" : "is-hidden")}>
         Scroll to begin the journey
       </div>
 
@@ -144,11 +176,11 @@ export const FlightHUD = ({
       <div
         ref={scrollbarRef}
         onClick={handleTrackClick}
-        className={`vsh-scrollbar-0 ${showScrollbar ? "vsh-scrollbar-0--in" : ""}`}
+        className={cn("scrollbar", showScrollbar && "is-visible")}
       >
         <div
           onMouseDown={handleMouseDown}
-          className="vsh-scrollbar__handle-0"
+          className="scrollbar-handle"
           style={{
             transform: `translate3d(0, ${Math.min(900, Math.max(0, currentRatio * 900))}%, 0)`,
           }}

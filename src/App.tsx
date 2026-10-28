@@ -4,6 +4,7 @@ import { IntroScreen } from "./components/IntroScreen";
 import { FlightHUD } from "./components/FlightHUD";
 import { AboutModal } from "./components/AboutModal";
 import { OutroScreen } from "./components/OutroScreen";
+import { cn } from "./utils/cn";
 import gsap from "gsap";
 
 export const App = () => {
@@ -90,7 +91,10 @@ export const App = () => {
 
       {/* Authentic Atmos Bottom Canyon Atmosphere Glow */}
       <div
-        className={`flight-glow pointer-events-none transition-opacity duration-1000 ${isExploring && !isEnded && !isAboutOpen ? "opacity-100" : "opacity-0"}`}
+        className={cn(
+          "flight-glow pointer-events-none transition-opacity duration-1000",
+          isExploring && !isEnded && !isAboutOpen ? "opacity-100" : "opacity-0",
+        )}
       />
 
       {/* Intro Landing Screen & Title */}

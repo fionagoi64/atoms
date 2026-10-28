@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import lottie, { AnimationItem } from "lottie-web";
+import { cn } from "../utils/cn";
 
 interface LottieButtonProps {
   animationPath: string;
@@ -65,7 +66,10 @@ export const LottieButton = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
-      className={`cursor-pointer inline-block transition-transform hover:scale-105 active:scale-95 ${className}`}
+      className={cn(
+        "cursor-pointer inline-block transition-transform hover:scale-105 active:scale-95",
+        className,
+      )}
       style={{ width }}
       role="button"
       tabIndex={0}
