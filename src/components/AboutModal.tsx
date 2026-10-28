@@ -5,7 +5,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { ATMOS_FACTS } from "../data/atmosData";
+import { ATMOS_FACTS } from "../data/facts";
 import { RollTitle } from "./RollTitle";
 import gsap from "gsap";
 
