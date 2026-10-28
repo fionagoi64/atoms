@@ -139,7 +139,7 @@ html {
   right: 0;
   width: min(18vw, 150px);
   height: min(18vw, 150px);
-  background-image: url("/e4b4f466a8acfa6ccf02.svg");
+  background-image: url("/icons/badge.svg");
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
